@@ -7,8 +7,9 @@
   <title>Pulse</title>
   <style>
     /* Tuned for Kindle Colorsoft (~1264x1680 physical / 632x840 CSS px, 7" portrait).
-       Kaleido renders green most cleanly (its color filter is RGB-tuned) so we use
-       the GitHub contribution palette. Squid Ink stays for body text. */
+       Kaleido renders green cleanly but darkens any saturated color toward gray, so
+       the ramp here is deliberately pastel/milky — pale mint → soft mint → medium
+       milky green, all high-lightness so they don't compress to gray. */
     html, body { margin: 0; padding: 0; }
     body {
       font-family: Georgia, serif;
@@ -23,14 +24,14 @@
       font-size: 44px; margin: 0; letter-spacing: 8px; font-weight: bold;
       color: #232F3E;
     }
-    h1 .dot { color: #2DA44E; }
-    .sub { font-style: italic; color: #2DA44E; font-size: 16px; margin-top: 4px; letter-spacing: 1px; }
+    h1 .dot { color: #6FCF97; }
+    .sub { font-style: italic; color: #6FCF97; font-size: 16px; margin-top: 4px; letter-spacing: 1px; }
 
     /* SECTION HEADERS */
     h2 {
       margin: 16px 0 10px; font-size: 12px; letter-spacing: 4px;
       text-align: center; font-weight: bold; color: #232F3E;
-      border-bottom: 1px solid #2DA44E; padding-bottom: 5px;
+      border-bottom: 1px solid #6FCF97; padding-bottom: 5px;
     }
 
     /* GRIDS */
@@ -47,7 +48,8 @@
     }
 
     /* HEATMAP — 7 rows (days, Mon top → Sun bottom) × 5 cols (weeks, oldest → current).
-       GitHub contribution-graph green ramp: cleanest hue on Kaleido panels. */
+       Pastel/milky green ramp: stays light enough that Kaleido does NOT compress
+       any step to gray. */
     .heatwrap { display: flex; gap: 8px; align-items: stretch; padding: 2px 12px 0; }
     .daylabels {
       display: flex; flex-direction: column; justify-content: space-around;
@@ -56,10 +58,10 @@
     }
     .heatgrid { flex: 1; border-collapse: separate; border-spacing: 5px; }
     .heatgrid td { width: 14.28%; height: 24px; border-radius: 3px; }
-    .h0 { background: #EBEDF0; }            /* empty (GitHub L0) */
-    .h1 { background: #9BE9A8; }            /* light  (GitHub L1) */
-    .h2 { background: #40C463; }            /* mid    (GitHub L3) */
-    .h3 { background: #216E39; }            /* dark   (GitHub L4) */
+    .h0 { background: #EBEDF0; }            /* empty — pale gray */
+    .h1 { background: #DAF5DD; }            /* pale mint */
+    .h2 { background: #A8E6BC; }            /* soft mint */
+    .h3 { background: #6FCF97; }            /* milky medium green */
 
     .footer {
       font-size: 15px; color: #232F3E; margin-top: 14px;
