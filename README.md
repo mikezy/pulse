@@ -47,6 +47,6 @@ On the Kindle:
 
 Three rules, enforced by tests in `tests/test_claude_privacy.py` and `tests/test_outlook_privacy.py`:
 
-1. `outlook.collect()` returns only `{"meetings_today": int, "todos_today": int}`. Never titles, attendees, bodies.
+1. `outlook.collect()` returns only `{"meetings_today": int | None, "todos_today": int | None}`. Never titles, attendees, bodies. v1 ships with the MCP wiring stubbed, so meetings/todos render as em-dashes until the user wires their MCP client.
 2. `claude.collect()` reads only `timestamp`, `model`, `usage.input_tokens`, `usage.output_tokens`, `session_id`. Never `message.content`, `tool_use.input`, `tool_use.output`, project paths, ticket IDs, or anything else.
 3. The collector for Claude data is rooted at `~/.claude/projects/`, not `~/.claude/`. `~/.claude/.credentials.json` is structurally unreachable.
