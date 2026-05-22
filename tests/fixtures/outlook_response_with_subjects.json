@@ -1,0 +1,11 @@
+{
+  "events": [
+    {"subject": "PROJECT NEMESIS launch sync", "attendees": ["bezos@amazon.com"], "body": "Q3 plan"},
+    {"subject": "1:1 with Manager", "attendees": ["alice@amazon.com"]},
+    {"subject": "OP1 review", "attendees": []}
+  ],
+  "tasks": [
+    {"title": "Draft layoff comms", "notes": "do not leak"},
+    {"title": "Review SIM-12345", "notes": "internal"}
+  ]
+}
