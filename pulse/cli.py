@@ -5,7 +5,11 @@ Task 9 wires render + update only. Task 10 adds setup/stop/uninstall.
 from __future__ import annotations
 
 import argparse
+import json as _json
 import logging
+import os
+import shutil
+import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -70,7 +74,6 @@ def _setup_logging() -> logging.Logger:
 
 def _record_last_update(ts: str) -> None:
     """Append last_update_ts to STATE_FILE without disturbing other keys."""
-    import json as _json
     state = {}
     if STATE_FILE.exists():
         try:
@@ -106,7 +109,6 @@ def cmd_update(_args) -> int:
 
 
 def cmd_status(_args) -> int:
-    import json as _json
     if STATE_FILE.exists():
         try:
             s = _json.loads(STATE_FILE.read_text())
@@ -122,11 +124,90 @@ def cmd_status(_args) -> int:
     return 0
 
 
-def _stub_not_implemented(name: str):
-    def _f(_args):
-        sys.stderr.write(f"`pulse {name}` not implemented yet (Task 10)\n")
+_LAUNCH_AGENT_LABEL = "dev.pulse.update"
+_LAUNCH_AGENT_PLIST = Path.home() / "Library" / "LaunchAgents" / f"{_LAUNCH_AGENT_LABEL}.plist"
+_PLIST_TEMPLATE = Path(__file__).parent.parent / "scripts" / "dev.pulse.update.plist.template"
+
+
+def _prompt(label: str, default: str | None = None) -> str:
+    suffix = f" [{default}]" if default else ""
+    val = input(f"{label}{suffix}: ").strip()
+    return val or (default or "")
+
+
+def _write_credentials_interactive() -> Path:
+    from pulse.paths import CREDENTIALS_FILE, ensure_dirs
+    ensure_dirs()
+    print("Pulse credentials (saved to ~/.pulse/credentials.json, mode 0600).")
+    creds = {
+        "token": _prompt("GitHub token (Contents:write on the target repo)"),
+        "owner": _prompt("Repo owner", "mikezy"),
+        "repo": _prompt("Repo name", "pulse"),
+        "branch": _prompt("Branch", "main"),
+        "path": _prompt("File path in repo", "docs/index.html"),
+        "author_name": _prompt("Commit author name", "Pulse Bot"),
+        "author_email": _prompt("Commit author email", "pulse@local"),
+    }
+    CREDENTIALS_FILE.write_text(_json.dumps(creds, indent=2))
+    os.chmod(CREDENTIALS_FILE, 0o600)
+    return CREDENTIALS_FILE
+
+
+def _install_launch_agent() -> Path:
+    pulse_bin = shutil.which("pulse") or sys.executable + " -m pulse.cli"
+    template = _PLIST_TEMPLATE.read_text()
+    rendered = (template
+                .replace("__PULSE_BIN__", pulse_bin)
+                .replace("__HOME__", str(Path.home())))
+    _LAUNCH_AGENT_PLIST.parent.mkdir(parents=True, exist_ok=True)
+    _LAUNCH_AGENT_PLIST.write_text(rendered)
+
+    # Unload first in case a previous version is loaded.
+    subprocess.run(["launchctl", "unload", str(_LAUNCH_AGENT_PLIST)],
+                   capture_output=True, check=False)
+    subprocess.run(["launchctl", "load", str(_LAUNCH_AGENT_PLIST)], check=True)
+    return _LAUNCH_AGENT_PLIST
+
+
+def cmd_setup(_args) -> int:
+    print("Pulse setup")
+    print("-----------")
+    creds_file = _write_credentials_interactive()
+    print(f"Credentials: {creds_file}")
+    plist = _install_launch_agent()
+    print(f"LaunchAgent: {plist} (loaded, every 30s)")
+    print("Running one update now to verify...")
+    rc = cmd_update(None)
+    if rc == 0:
+        print("OK. Open https://mikezy.github.io/pulse on your Kindle.")
+    else:
+        print(f"Initial update failed (rc={rc}). Check ~/.pulse/logs/update.log")
+    return rc
+
+
+def cmd_stop(_args) -> int:
+    if not _LAUNCH_AGENT_PLIST.exists():
+        print("LaunchAgent not installed.")
+        return 0
+    subprocess.run(["launchctl", "unload", str(_LAUNCH_AGENT_PLIST)], check=False)
+    print(f"Unloaded {_LAUNCH_AGENT_PLIST}")
+    return 0
+
+
+def cmd_uninstall(_args) -> int:
+    confirm = input("Remove ~/.pulse and the LaunchAgent? [y/N] ").strip().lower()
+    if confirm != "y":
+        print("Aborted.")
         return 1
-    return _f
+    cmd_stop(None)
+    if _LAUNCH_AGENT_PLIST.exists():
+        _LAUNCH_AGENT_PLIST.unlink()
+        print(f"Removed {_LAUNCH_AGENT_PLIST}")
+    pulse_home = Path.home() / ".pulse"
+    if pulse_home.exists():
+        shutil.rmtree(pulse_home)
+        print(f"Removed {pulse_home}")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -144,9 +225,9 @@ def main(argv: list[str] | None = None) -> int:
         "render": cmd_render,
         "update": cmd_update,
         "status": cmd_status,
-        "setup": _stub_not_implemented("setup"),
-        "stop": _stub_not_implemented("stop"),
-        "uninstall": _stub_not_implemented("uninstall"),
+        "setup": cmd_setup,
+        "stop": cmd_stop,
+        "uninstall": cmd_uninstall,
     }
     return handlers[args.cmd](args)
 
