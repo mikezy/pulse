@@ -7,69 +7,68 @@
   <title>Pulse</title>
   <style>
     /* Tuned for Kindle Colorsoft (~1264x1680 physical / 632x840 CSS px, 7" portrait).
-       Kaleido panels render saturated reds as maroon and dark browns as black, so we
-       push the orange ramp lighter and warmer. AWS Squid Ink stays for ink. */
+       Kaleido renders green most cleanly (its color filter is RGB-tuned) so we use
+       the GitHub contribution palette. Squid Ink stays for body text. */
     html, body { margin: 0; padding: 0; }
     body {
       font-family: Georgia, serif;
       background: #fff;
       color: #232F3E;
-      padding: 18px 28px 12px;
+      padding: 18px 28px 14px;
     }
 
     /* HEADER */
-    .head { text-align: center; margin-bottom: 12px; }
+    .head { text-align: center; margin-bottom: 14px; }
     h1 {
-      font-size: 42px; margin: 0; letter-spacing: 8px; font-weight: bold;
+      font-size: 44px; margin: 0; letter-spacing: 8px; font-weight: bold;
       color: #232F3E;
     }
-    h1 .dot { color: #FF6A00; }
-    .sub { font-style: italic; color: #FF6A00; font-size: 14px; margin-top: 4px; letter-spacing: 1px; }
+    h1 .dot { color: #2DA44E; }
+    .sub { font-style: italic; color: #2DA44E; font-size: 16px; margin-top: 4px; letter-spacing: 1px; }
 
     /* SECTION HEADERS */
     h2 {
-      margin: 14px 0 8px; font-size: 11px; letter-spacing: 4px;
+      margin: 16px 0 10px; font-size: 12px; letter-spacing: 4px;
       text-align: center; font-weight: bold; color: #232F3E;
-      border-bottom: 1px solid #FF6A00; padding-bottom: 5px;
+      border-bottom: 1px solid #2DA44E; padding-bottom: 5px;
     }
 
     /* GRIDS */
     .grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .grid td {
-      padding: 8px 4px;
+      padding: 9px 4px;
       font-variant-numeric: tabular-nums; vertical-align: top;
       word-wrap: break-word; text-align: center;
     }
-    .num { font-size: 22px; font-weight: bold; line-height: 1.15; color: #232F3E; }
+    .num { font-size: 24px; font-weight: bold; line-height: 1.15; color: #232F3E; }
     .lbl {
-      font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
       color: #545B64; margin-top: 5px;
     }
 
     /* HEATMAP — 7 rows (days, Mon top → Sun bottom) × 5 cols (weeks, oldest → current).
-       Single-hue ramp tuned for Kaleido: light peach → mid orange → deep orange.
-       Avoid pure red and dark browns (Kaleido renders them as maroon / black). */
+       GitHub contribution-graph green ramp: cleanest hue on Kaleido panels. */
     .heatwrap { display: flex; gap: 8px; align-items: stretch; padding: 2px 12px 0; }
     .daylabels {
       display: flex; flex-direction: column; justify-content: space-around;
-      font-size: 9px; color: #545B64; padding: 1px 0;
+      font-size: 10px; color: #545B64; padding: 1px 0;
       text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
     }
-    .heatgrid { flex: 1; border-collapse: separate; border-spacing: 4px; }
-    .heatgrid td { width: 14.28%; height: 18px; border-radius: 3px; }
-    .h0 { background: #F2F3F3; }            /* empty */
-    .h1 { background: #FFE0B2; }            /* light peach */
-    .h2 { background: #FFB74D; }            /* mid orange */
-    .h3 { background: #FF6A00; }            /* deep orange */
+    .heatgrid { flex: 1; border-collapse: separate; border-spacing: 5px; }
+    .heatgrid td { width: 14.28%; height: 24px; border-radius: 3px; }
+    .h0 { background: #EBEDF0; }            /* empty (GitHub L0) */
+    .h1 { background: #9BE9A8; }            /* light  (GitHub L1) */
+    .h2 { background: #40C463; }            /* mid    (GitHub L3) */
+    .h3 { background: #216E39; }            /* dark   (GitHub L4) */
 
     .footer {
-      font-size: 12px; color: #232F3E; margin-top: 10px;
+      font-size: 15px; color: #232F3E; margin-top: 14px;
       text-align: center; font-style: italic;
-      border-top: 1px solid #F2F3F3; padding-top: 8px;
+      border-top: 1px solid #F2F3F3; padding-top: 10px;
     }
     .footer .stamp {
-      display: block; font-size: 9px; color: #545B64;
-      font-style: normal; letter-spacing: 1px; margin-top: 4px;
+      display: block; font-size: 11px; color: #545B64;
+      font-style: normal; letter-spacing: 1px; margin-top: 5px;
     }
   </style>
 </head><body>
