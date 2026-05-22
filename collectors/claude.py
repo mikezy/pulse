@@ -1,9 +1,11 @@
 """Claude Code usage aggregator (4-week window).
 
-Reads ONLY ~/.claude/projects/**.jsonl. Parses ONLY timestamp/model/usage/session_id.
+Reads ONLY ~/.claude/projects/**.jsonl. Parses ONLY timestamp/model/usage/session_id,
+plus the structural `type` tag of `message.content` blocks (never the block text itself).
 Never opens .credentials.json (structurally unreachable: rooted at projects/, not ~/.claude/).
-Never reads message.content, tool_use.input, tool_use.output, or any field whose name
-contains 'content', 'input', 'output' (other than usage.input_tokens / output_tokens).
+Never reads message.content text/values, tool_use.input, tool_use.output, or any field
+whose name contains 'content', 'input', 'output' (other than usage.input_tokens /
+output_tokens, and the `type` schema tag of content blocks — see _is_user_prompt).
 """
 import json
 from collections import Counter
@@ -65,6 +67,39 @@ def _iter_jsonl_rows(projects_dir: Path):
             continue
 
 
+def _is_user_prompt(row: dict) -> bool:
+    """True if this row represents a prompt the human typed (not a tool result).
+
+    Reads ONLY structural schema tags — `type`, `message.role`, and the `type` tag
+    of the FIRST content block. Never reads block text, tool inputs, tool outputs,
+    or any other content. The schema tags we look at are part of the JSONL framing,
+    not the user's data.
+
+    Three shapes count as user-typed:
+      - {type: "user", message: {role: "user", content: <str>}}              # plain text prompt
+      - {type: "user", message: {role: "user", content: [{type: "text", ...}]}}  # rich text
+      - {type: "user", message: {role: "user", content: [{type: "image", ...}]}} # pasted image
+
+    Tool feedback is excluded:
+      - content[0].type == "tool_result"   (the model fed itself a tool output)
+    """
+    if row.get("type") != "user":
+        return False
+    msg = row.get("message")
+    if not isinstance(msg, dict) or msg.get("role") != "user":
+        return False
+    content = msg.get("content")
+    # str content = typed prompt. We don't inspect the string itself.
+    if isinstance(content, str):
+        return True
+    if isinstance(content, list) and content:
+        first = content[0]
+        if isinstance(first, dict):
+            # Read ONLY the schema tag, never the block text/data.
+            return first.get("type") in ("text", "image")
+    return False
+
+
 def _extract_safe_fields(row: dict) -> dict | None:
     """Return only the allowlisted subset of a row. None if required fields missing.
 
@@ -95,6 +130,9 @@ def _extract_safe_fields(row: dict) -> dict | None:
         "session_id": session_id,
         "model": model,
         "usage": safe_usage,
+        # Boolean tag — does NOT carry any prompt content. Only the schema-level
+        # answer to "did a human type this row?" is preserved.
+        "is_user_prompt": _is_user_prompt(row),
     }
 
 
@@ -167,7 +205,10 @@ def collect() -> dict:
     messages = 0
     tokens = 0
     active_days = set()
-    hour_counts: Counter = Counter()
+    # Peak hour is computed over USER-TYPED prompts only (not tool results /
+    # autonomous agent turns). This answers "when am I working?" instead of
+    # "when does my CPU work hardest?". See _is_user_prompt().
+    prompt_hour_counts: Counter = Counter()
     model_counts: Counter = Counter()
     daily_counts: Counter = Counter()
 
@@ -193,12 +234,15 @@ def collect() -> dict:
         if safe["session_id"]:
             sessions.add(safe["session_id"])
         active_days.add(d)
-        hour_counts[local_ts.hour] += 1
+        if safe["is_user_prompt"]:
+            prompt_hour_counts[local_ts.hour] += 1
         if safe["model"]:
             model_counts[safe["model"]] += 1
         daily_counts[d] += 1
 
-    peak_hour = hour_counts.most_common(1)[0][0] if hour_counts else None
+    # Peak hour falls back to None if we never saw a typed prompt in 4 weeks
+    # (e.g., a fresh install or a fixture without prompt-shaped rows).
+    peak_hour = prompt_hour_counts.most_common(1)[0][0] if prompt_hour_counts else None
     top_model = _abbrev_model(model_counts.most_common(1)[0][0]) if model_counts else "—"
     heatmap_4w = _build_heatmap(daily_counts, today)
 

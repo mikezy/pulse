@@ -51,6 +51,31 @@ def test_collect_4w_aggregates(tmp_path, monkeypatch):
     assert result["window_days"] == 28
 
 
+def test_collect_peak_hour_excludes_tool_results(tmp_path, monkeypatch):
+    """Peak hour = hour with the most USER-TYPED prompts.
+
+    Fixture timestamps in UTC, fixture rows by content shape:
+      - 09:00 type=user, content=str         -> prompt
+      - 09:05 type=assistant                 -> not a prompt
+      - 14:30 type=user, content=[tool_result] -> NOT a prompt (excluded)
+      - 11:00 type=user, content=[text]      -> prompt
+      - 11:00 type=user, content=str         -> prompt
+    Prompts at 09:00 (×1) and 11:00 (×2) → peak hour = 11 (in UTC).
+    """
+    projects = _setup_fake_projects(tmp_path)
+    monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
+
+    with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
+        result = claude.collect()
+
+    # Local-time conversion makes the absolute hour TZ-dependent, but the
+    # ranking (11 beats 09) holds in any timezone because both shift equally.
+    # We assert peak_hour is set to the hour bucket that 11:00 UTC falls into.
+    from datetime import datetime, timezone
+    expected_hour = datetime(2026, 5, 21, 11, 0, tzinfo=timezone.utc).astimezone().hour
+    assert result["peak_hour"] == expected_hour
+
+
 def test_collect_top_model_is_majority(tmp_path, monkeypatch):
     projects = _setup_fake_projects(tmp_path)
     monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)

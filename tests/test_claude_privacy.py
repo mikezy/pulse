@@ -169,6 +169,74 @@ def test_extract_safe_fields_drops_unknown_keys():
     assert "standard" not in json.dumps(safe)
 
 
+def test_user_prompt_filter_never_reads_block_text(tmp_path, monkeypatch):
+    """The peak-hour filter inspects only the schema 'type' tag of content blocks.
+
+    It must NOT leak the actual block text — even when the block is a 'text'
+    block whose content is itself confidential.
+    """
+    projects = tmp_path / ".claude" / "projects"
+    proj = projects / "leak-bait"
+    proj.mkdir(parents=True)
+    rows = [
+        # Plain string prompt — content text is Confidential.
+        {
+            "timestamp": "2026-05-22T10:00:00Z",
+            "type": "user",
+            "sessionId": "s-bait-1",
+            "message": {
+                "role": "user",
+                "content": "PROJECT NEMESIS go-to-market plan draft",
+            },
+        },
+        # Rich-text prompt — first block is a 'text' block whose text is Confidential.
+        {
+            "timestamp": "2026-05-22T11:00:00Z",
+            "type": "user",
+            "sessionId": "s-bait-2",
+            "message": {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "ACME ACQUISITION termsheet leak bait"},
+                ],
+            },
+        },
+        # Tool-result row — first block 'type' tag is 'tool_result', so it's excluded.
+        # The block's content text is also Confidential.
+        {
+            "timestamp": "2026-05-22T12:00:00Z",
+            "type": "user",
+            "sessionId": "s-bait-3",
+            "message": {
+                "role": "user",
+                "content": [
+                    {"type": "tool_result", "content": "BEZOS LAYOFFS leak bait"},
+                ],
+            },
+        },
+    ]
+    f = proj / "session.jsonl"
+    f.write_text("\n".join(json.dumps(r) for r in rows))
+    monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
+
+    with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
+        result = claude.collect()
+
+    serialized = json.dumps(result)
+    for needle in (
+        "NEMESIS", "go-to-market",
+        "ACME", "ACQUISITION", "termsheet",
+        "BEZOS", "LAYOFFS", "leak bait",
+        "s-bait-1", "s-bait-2", "s-bait-3",  # session ids
+        "leak-bait",                          # project folder
+    ):
+        assert needle not in serialized, f"Confidential string '{needle}' leaked into output"
+
+    # Sanity: the filter still correctly identified 2 prompts (rows 1+2) and
+    # excluded the tool-result row (row 3) — peak hour is set, not None.
+    assert result["peak_hour"] is not None
+
+
 def test_extract_safe_fields_reads_nested_message_envelope():
     """Current Claude Code JSONL format nests model/usage under `message`.
 
