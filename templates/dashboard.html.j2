@@ -7,8 +7,9 @@
   <title>Pulse</title>
   <style>
     /* Tuned for Kindle Colorsoft (~1264x1680 physical / 632x840 CSS px, 7" portrait).
-       AWS purple ramp — anchor on Bedrock/AI brand purple (#8C4FFF), then step
-       lighter for the heatmap so Kaleido keeps each step visibly purple. */
+       Yellow/amber ramp — Kaleido pulls low-saturation pastels toward gray, so
+       L1 jumps straight to a saturated butter yellow (NOT a pale wash) to stay
+       visibly different from the empty L0 gray. */
     html, body { margin: 0; padding: 0; }
     body {
       font-family: Georgia, serif;
@@ -23,14 +24,14 @@
       font-size: 44px; margin: 0; letter-spacing: 8px; font-weight: bold;
       color: #232F3E;
     }
-    h1 .dot { color: #8C4FFF; }
-    .sub { font-style: italic; color: #8C4FFF; font-size: 16px; margin-top: 4px; letter-spacing: 1px; }
+    h1 .dot { color: #E08E00; }
+    .sub { font-style: italic; color: #E08E00; font-size: 16px; margin-top: 4px; letter-spacing: 1px; }
 
     /* SECTION HEADERS */
     h2 {
       margin: 16px 0 10px; font-size: 12px; letter-spacing: 4px;
       text-align: center; font-weight: bold; color: #232F3E;
-      border-bottom: 1px solid #8C4FFF; padding-bottom: 5px;
+      border-bottom: 1px solid #E08E00; padding-bottom: 5px;
     }
 
     /* GRIDS */
@@ -47,7 +48,8 @@
     }
 
     /* HEATMAP — 7 rows (days, Mon top → Sun bottom) × 5 cols (weeks, oldest → current).
-       AWS purple ramp — light lavender → soft violet → AWS Bedrock purple. */
+       Yellow/amber ramp. Each step holds saturation so it survives Kaleido's
+       gray-bias compression. L1 is full butter yellow, not a pale wash. */
     .heatwrap { display: flex; gap: 8px; align-items: stretch; padding: 2px 12px 0; }
     .daylabels {
       display: flex; flex-direction: column; justify-content: space-around;
@@ -57,9 +59,9 @@
     .heatgrid { flex: 1; border-collapse: separate; border-spacing: 5px; }
     .heatgrid td { width: 14.28%; height: 24px; border-radius: 3px; }
     .h0 { background: #EBEDF0; }            /* empty — pale gray */
-    .h1 { background: #EADCFF; }            /* light lavender */
-    .h2 { background: #C7A8FF; }            /* soft violet */
-    .h3 { background: #8C4FFF; }            /* AWS Bedrock purple */
+    .h1 { background: #FFE066; }            /* butter yellow — saturated */
+    .h2 { background: #FFB300; }            /* amber */
+    .h3 { background: #E08E00; }            /* deep amber */
 
     .footer {
       font-size: 15px; color: #232F3E; margin-top: 14px;
