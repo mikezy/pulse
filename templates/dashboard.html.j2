@@ -7,35 +7,36 @@
   <title>Pulse</title>
   <style>
     /* Tuned for Kindle Colorsoft (~1264x1680 physical / 632x840 CSS px, 7" portrait).
-       AWS palette: Squid Ink (#232F3E) + Smile Orange (#E64A19). */
+       Kaleido panels render saturated reds as maroon and dark browns as black, so we
+       push the orange ramp lighter and warmer. AWS Squid Ink stays for ink. */
     html, body { margin: 0; padding: 0; }
     body {
       font-family: Georgia, serif;
       background: #fff;
       color: #232F3E;
-      padding: 22px 28px;
+      padding: 18px 28px 12px;
     }
 
     /* HEADER */
-    .head { text-align: center; margin-bottom: 18px; }
+    .head { text-align: center; margin-bottom: 12px; }
     h1 {
       font-size: 42px; margin: 0; letter-spacing: 8px; font-weight: bold;
       color: #232F3E;
     }
-    h1 .dot { color: #E64A19; }
-    .sub { font-style: italic; color: #E64A19; font-size: 14px; margin-top: 4px; letter-spacing: 1px; }
+    h1 .dot { color: #FF6A00; }
+    .sub { font-style: italic; color: #FF6A00; font-size: 14px; margin-top: 4px; letter-spacing: 1px; }
 
     /* SECTION HEADERS */
     h2 {
-      margin: 18px 0 10px; font-size: 11px; letter-spacing: 4px;
+      margin: 14px 0 8px; font-size: 11px; letter-spacing: 4px;
       text-align: center; font-weight: bold; color: #232F3E;
-      border-bottom: 1px solid #E64A19; padding-bottom: 6px;
+      border-bottom: 1px solid #FF6A00; padding-bottom: 5px;
     }
 
     /* GRIDS */
     .grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
     .grid td {
-      padding: 10px 4px;
+      padding: 8px 4px;
       font-variant-numeric: tabular-nums; vertical-align: top;
       word-wrap: break-word; text-align: center;
     }
@@ -46,24 +47,25 @@
     }
 
     /* HEATMAP — 7 rows (days, Mon top → Sun bottom) × 5 cols (weeks, oldest → current).
-       Single-hue ramp: light = quiet, dark = busy. */
-    .heatwrap { display: flex; gap: 8px; align-items: stretch; padding: 4px 12px 0; }
+       Single-hue ramp tuned for Kaleido: light peach → mid orange → deep orange.
+       Avoid pure red and dark browns (Kaleido renders them as maroon / black). */
+    .heatwrap { display: flex; gap: 8px; align-items: stretch; padding: 2px 12px 0; }
     .daylabels {
       display: flex; flex-direction: column; justify-content: space-around;
-      font-size: 10px; color: #545B64; padding: 2px 0;
+      font-size: 9px; color: #545B64; padding: 1px 0;
       text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
     }
-    .heatgrid { flex: 1; border-collapse: separate; border-spacing: 5px; }
-    .heatgrid td { width: 14.28%; height: 30px; border-radius: 3px; }
+    .heatgrid { flex: 1; border-collapse: separate; border-spacing: 4px; }
+    .heatgrid td { width: 14.28%; height: 18px; border-radius: 3px; }
     .h0 { background: #F2F3F3; }            /* empty */
-    .h1 { background: #FFD699; }            /* light orange */
-    .h2 { background: #E64A19; }            /* smile orange */
-    .h3 { background: #B26B00; }            /* deep amber */
+    .h1 { background: #FFE0B2; }            /* light peach */
+    .h2 { background: #FFB74D; }            /* mid orange */
+    .h3 { background: #FF6A00; }            /* deep orange */
 
     .footer {
-      font-size: 12px; color: #232F3E; margin-top: 16px;
+      font-size: 12px; color: #232F3E; margin-top: 10px;
       text-align: center; font-style: italic;
-      border-top: 1px solid #F2F3F3; padding-top: 10px;
+      border-top: 1px solid #F2F3F3; padding-top: 8px;
     }
     .footer .stamp {
       display: block; font-size: 9px; color: #545B64;

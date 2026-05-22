@@ -178,7 +178,11 @@ def collect() -> dict:
         ts = _parse_timestamp(safe["ts"])
         if ts is None:
             continue
-        d = ts.date()
+        # JSONL timestamps are UTC ('Z'). Convert to system-local time so the
+        # heatmap's day buckets and "peak hour" reflect the user's wall clock,
+        # not UTC (otherwise peak hour skews toward 0:00 for US-Pacific users).
+        local_ts = ts.astimezone() if ts.tzinfo else ts
+        d = local_ts.date()
         if d > today:
             continue  # Ignore future-dated rows.
         if d < window_start:
@@ -189,7 +193,7 @@ def collect() -> dict:
         if safe["session_id"]:
             sessions.add(safe["session_id"])
         active_days.add(d)
-        hour_counts[ts.hour] += 1
+        hour_counts[local_ts.hour] += 1
         if safe["model"]:
             model_counts[safe["model"]] += 1
         daily_counts[d] += 1

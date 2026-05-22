@@ -27,8 +27,10 @@ def collect() -> dict:
 
     Persists last-sample net counters to STATE_FILE so the next run can compute throughput.
     """
-    # CPU — short blocking sample.
-    cpu_pct = psutil.cpu_percent(interval=0.5)
+    # CPU — 1.0s blocking sample. Shorter windows on a quiet Mac (M-series at idle)
+    # frequently return exactly 0.0 because every core happens to be parked for the
+    # whole interval; 1.0s reliably catches background daemon activity.
+    cpu_pct = psutil.cpu_percent(interval=1.0)
 
     # Memory.
     vm = psutil.virtual_memory()
