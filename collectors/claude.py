@@ -12,8 +12,15 @@ from pathlib import Path
 
 from pulse.paths import CLAUDE_PROJECTS_DIR
 
-# Allowlist of usage subkeys we are allowed to read.
-_ALLOWED_USAGE_KEYS = {"input_tokens", "output_tokens"}
+# Allowlist of usage subkeys we are allowed to read. We include cache tokens because
+# they are billed/counted toward the user's daily token total. We never read any other
+# usage subkey, and we never read any non-usage `message.*` field except `model`.
+_ALLOWED_USAGE_KEYS = {
+    "input_tokens",
+    "output_tokens",
+    "cache_creation_input_tokens",
+    "cache_read_input_tokens",
+}
 
 
 def _today() -> date:
@@ -66,12 +73,25 @@ def _extract_safe_fields(row: dict) -> dict | None:
     ts = _parse_timestamp(row.get("timestamp", ""))
     if ts is None:
         return None
-    usage = row.get("usage") or {}
-    safe_usage = {k: usage.get(k, 0) for k in _ALLOWED_USAGE_KEYS}
+
+    # Claude Code JSONL nests model/usage under `message`. Older formats had them
+    # at the top level. Read both, prefer the nested form. We touch ONLY `model`
+    # and the allowlisted `usage.*` subkeys on the message envelope — never
+    # `message.content`, `message.role`, `message.id`, `message.stop_*`, etc.
+    message = row.get("message") if isinstance(row.get("message"), dict) else {}
+    model = message.get("model") or row.get("model")
+    raw_usage = message.get("usage") or row.get("usage") or {}
+    if not isinstance(raw_usage, dict):
+        raw_usage = {}
+    safe_usage = {k: int(raw_usage.get(k) or 0) for k in _ALLOWED_USAGE_KEYS}
+
+    # Session id: `sessionId` (current) or `session_id` (legacy).
+    session_id = row.get("sessionId") or row.get("session_id")
+
     return {
         "ts": ts.isoformat(),
-        "session_id": row.get("session_id"),
-        "model": row.get("model"),
+        "session_id": session_id,
+        "model": model,
         "usage": safe_usage,
     }
 
@@ -132,7 +152,7 @@ def collect() -> dict:
 
         if d == today:
             messages_today += 1
-            tokens_today += safe["usage"]["input_tokens"] + safe["usage"]["output_tokens"]
+            tokens_today += sum(safe["usage"].values())
             if safe["session_id"]:
                 sessions_today.add(safe["session_id"])
 

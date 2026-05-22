@@ -13,21 +13,44 @@ from collectors import claude
 
 
 def _write_dirty_jsonl(projects_dir: Path) -> None:
-    """Write a fixture that contains every Confidential field shape we worry about."""
+    """Write a fixture that contains every Confidential field shape we worry about.
+
+    Mixes the legacy top-level format and the current nested `message` envelope.
+    """
     proj = projects_dir / "secret-project-codename"
     proj.mkdir(parents=True)
     rows = [
+        # Legacy top-level shape.
         {
             "timestamp": "2026-05-22T10:00:00Z",
             "session_id": "s-secret-1",
             "model": "claude-sonnet-4-7",
             "usage": {"input_tokens": 1, "output_tokens": 1},
-            # The Confidential fields below MUST NOT appear in the output dict.
+            # Confidential fields below MUST NOT appear in the output dict.
             "message": {"content": "PROJECT NEMESIS launch in Q3"},
             "tool_use": {"input": "customer ABC, ticket SIM-12345"},
             "tool_result": {"output": "internal partner Acme Corp"},
             "cwd": "/Volumes/workplace/sara-internal-codename/src",
             "user_prompt": "draft email to bezos@amazon.com about layoffs",
+        },
+        # Current nested-message shape.
+        {
+            "timestamp": "2026-05-22T11:00:00Z",
+            "sessionId": "s-secret-2",
+            "type": "assistant",
+            "cwd": "/Volumes/workplace/sara-internal-codename/src",
+            "message": {
+                "model": "claude-opus-4-7",
+                "role": "assistant",
+                "id": "msg_LEAK_BAIT",
+                "content": "PROJECT NEMESIS phase 2",
+                "usage": {
+                    "input_tokens": 6,
+                    "output_tokens": 2818,
+                    "cache_creation_input_tokens": 92325,
+                    "cache_read_input_tokens": 0,
+                },
+            },
         },
     ]
     f = proj / "session.jsonl"
@@ -67,7 +90,9 @@ def test_output_values_contain_no_confidential_strings(tmp_path, monkeypatch):
         "Volumes", "workplace", "sara-internal-codename",
         "bezos", "layoffs",
         "secret-project-codename",  # project folder name
-        "s-secret-1",                # session id
+        "s-secret-1", "s-secret-2",  # session ids (both formats)
+        "msg_LEAK_BAIT",             # message.id
+        "phase 2",                   # nested message.content
     ]
     for needle in forbidden:
         assert needle not in serialized, f"Confidential string '{needle}' leaked into output"
@@ -118,15 +143,67 @@ def test_extract_safe_fields_drops_unknown_keys():
         "timestamp": "2026-05-22T10:00:00Z",
         "session_id": "s1",
         "model": "claude-sonnet-4-7",
-        "usage": {"input_tokens": 10, "output_tokens": 20, "cache_read_tokens": 999},
+        "usage": {
+            "input_tokens": 10,
+            "output_tokens": 20,
+            "cache_read_input_tokens": 5,
+            "cache_creation_input_tokens": 7,
+            "service_tier": "standard",  # not allowed
+            "speed": "fast",              # not allowed
+        },
         "message": {"content": "secret"},
         "tool_use": {"input": "secret"},
     }
     safe = claude._extract_safe_fields(dirty)
     assert safe is not None
-    # usage may only contain the two allowed keys.
-    assert set(safe["usage"].keys()) == {"input_tokens", "output_tokens"}
+    # usage may only contain the four allowed numeric keys.
+    assert set(safe["usage"].keys()) == {
+        "input_tokens", "output_tokens",
+        "cache_creation_input_tokens", "cache_read_input_tokens",
+    }
     # No raw 'message', 'tool_use', etc. should be in the safe dict.
     assert "message" not in safe
     assert "tool_use" not in safe
     assert "content" not in json.dumps(safe)
+    assert "standard" not in json.dumps(safe)
+
+
+def test_extract_safe_fields_reads_nested_message_envelope():
+    """Current Claude Code JSONL format nests model/usage under `message`.
+
+    The collector must read `message.model` and `message.usage.*`, but it must
+    NOT touch `message.content`, `message.role`, `message.id`, etc.
+    """
+    nested = {
+        "timestamp": "2026-05-22T10:00:00Z",
+        "sessionId": "s-nested-1",  # current camelCase
+        "type": "assistant",
+        "message": {
+            "model": "claude-opus-4-7",
+            "role": "assistant",
+            "id": "msg_abc123",
+            "stop_reason": "end_turn",
+            "content": "PROJECT NEMESIS LEAK BAIT",
+            "usage": {
+                "input_tokens": 6,
+                "output_tokens": 2818,
+                "cache_creation_input_tokens": 92325,
+                "cache_read_input_tokens": 0,
+                "service_tier": "standard",
+                "iterations": [{"reasoning_tokens": 999}],
+            },
+        },
+    }
+    safe = claude._extract_safe_fields(nested)
+    assert safe is not None
+    assert safe["model"] == "claude-opus-4-7"
+    assert safe["session_id"] == "s-nested-1"
+    assert safe["usage"]["input_tokens"] == 6
+    assert safe["usage"]["output_tokens"] == 2818
+    assert safe["usage"]["cache_creation_input_tokens"] == 92325
+    assert safe["usage"]["cache_read_input_tokens"] == 0
+    serialized = json.dumps(safe)
+    assert "NEMESIS" not in serialized
+    assert "msg_abc123" not in serialized
+    assert "iterations" not in serialized
+    assert "service_tier" not in serialized

@@ -1,25 +1,28 @@
 <!doctype html>
 <html><head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- ts is the epoch second at render time; +30 makes the next URL distinct so GitHub Pages CDN can't serve a cached copy on refresh -->
   <meta http-equiv="refresh" content="30; url=https://mikezy.github.io/pulse/?t={{ ts + 30 }}">
   <title>Pulse</title>
   <style>
-    body { font-family: Georgia, serif; background: #fff; color: #000; margin: 0; padding: 24px; }
-    h1   { font-size: 36px; margin: 0; letter-spacing: 4px; }
-    .sub { font-style: italic; color: #555; margin-bottom: 24px; }
-    h2   { margin-top: 32px; font-size: 18px; letter-spacing: 2px; }
-    .grid{ width: 100%; border-collapse: collapse; }
-    .grid td { padding: 8px 12px; border-bottom: 1px solid #ccc; font-variant-numeric: tabular-nums; vertical-align: top; }
-    .num { font-size: 32px; font-weight: bold; }
-    .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: 2px; color: #666; }
-    .heat { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    .heat td { width: 1.5%; height: 14px; padding: 0; border: 1px solid #fff; }
+    /* Tuned for Kindle Colorsoft (1264x1680, ~7" portrait). No JS, no images. */
+    html, body { margin: 0; padding: 0; }
+    body { font-family: Georgia, serif; background: #fff; color: #000; padding: 16px 18px; }
+    h1   { font-size: 32px; margin: 0; letter-spacing: 4px; }
+    .sub { font-style: italic; color: #555; margin-bottom: 16px; font-size: 14px; }
+    h2   { margin: 20px 0 6px; font-size: 16px; letter-spacing: 2px; }
+    .grid{ width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .grid td { padding: 6px 4px; border-bottom: 1px solid #ccc; font-variant-numeric: tabular-nums; vertical-align: top; word-wrap: break-word; }
+    .num { font-size: 22px; font-weight: bold; line-height: 1.1; }
+    .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #666; margin-top: 2px; }
+    .heat { width: 100%; border-collapse: collapse; margin-top: 12px; table-layout: fixed; }
+    .heat td { height: 18px; padding: 0; border: 1px solid #fff; }
     .h0 { background: #fff; }
     .h1 { background: #ddd; }
     .h2 { background: #888; }
     .h3 { background: #000; }
-    .footer { font-size: 11px; color: #888; margin-top: 24px; text-align: center; }
+    .footer { font-size: 10px; color: #888; margin-top: 16px; text-align: center; }
   </style>
 </head><body>
   <h1>PULSE</h1>
