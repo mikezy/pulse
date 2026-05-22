@@ -12,7 +12,7 @@ from pathlib import Path
 
 from pulse.paths import CLAUDE_PROJECTS_DIR
 
-# Whitelist of usage subkeys we are allowed to read.
+# Allowlist of usage subkeys we are allowed to read.
 _ALLOWED_USAGE_KEYS = {"input_tokens", "output_tokens"}
 
 
@@ -57,7 +57,7 @@ def _iter_jsonl_rows(projects_dir: Path):
 
 
 def _extract_safe_fields(row: dict) -> dict | None:
-    """Return only the whitelisted subset of a row. None if required fields missing.
+    """Return only the allowlisted subset of a row. None if required fields missing.
 
     The returned dict is JSON-serialisable: 'ts' is stored as an ISO-8601 string,
     not a datetime object, so callers can safely round-trip through json.dumps()

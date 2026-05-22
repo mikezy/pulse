@@ -124,7 +124,7 @@ def test_extract_safe_fields_drops_unknown_keys():
     }
     safe = claude._extract_safe_fields(dirty)
     assert safe is not None
-    # usage may only contain the two whitelisted keys.
+    # usage may only contain the two allowed keys.
     assert set(safe["usage"].keys()) == {"input_tokens", "output_tokens"}
     # No raw 'message', 'tool_use', etc. should be in the safe dict.
     assert "message" not in safe
