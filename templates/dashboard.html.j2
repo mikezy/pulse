@@ -112,13 +112,6 @@
     </table>
   </div>
 
-  <h2>TODAY</h2>
-  <table class="grid"><tr>
-    <td><div class="num">{{ meetings_today if meetings_today is not none else "—" }}</div><div class="lbl">Meetings</div></td>
-    <td><div class="num">{{ todos_today if todos_today is not none else "—" }}</div><div class="lbl">Todos open</div></td>
-    <td><div class="num">{{ next_meeting if next_meeting is not none else "—" }}</div><div class="lbl">Next meeting</div></td>
-  </tr></table>
-
   <div class="footer">
     &ldquo;{{ fun_fact }}&rdquo;
     <span class="stamp">Updated {{ now_str }}</span>

@@ -30,18 +30,21 @@ def test_render_contains_all_labels():
     html = render.render(SAMPLE_CTX)
     for label in ("CPU", "RAM", "DISK", "BATTERY",
                   "Sessions", "Messages", "Tokens", "Active days",
-                  "Peak hour", "Top model",
-                  "Meetings", "Todos open", "Next meeting"):
+                  "Peak hour", "Top model"):
         assert label in html, f"missing label: {label}"
 
 
-def test_render_does_not_show_network_or_streak():
-    """Ship-it design dropped the Network row and the Streak metric."""
+def test_render_drops_network_streak_and_today():
+    """Compact design fits one Kindle screen: no Network row, no Streak,
+    no TODAY section. Quote in the footer is the only thing below the heatmap."""
     html = render.render(SAMPLE_CTX)
-    # Section header NET removed
     assert "NET MB/s" not in html
-    # Streak label removed
     assert "Streak" not in html
+    # TODAY section header and its labels were dropped to fit the page.
+    assert ">TODAY<" not in html
+    assert "Meetings" not in html
+    assert "Todos open" not in html
+    assert "Next meeting" not in html
 
 
 def test_render_contains_values():
