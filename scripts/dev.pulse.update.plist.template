@@ -1,5 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Pulse update LaunchAgent.
+
+  Lifecycle coverage:
+    - Reboot / login:     RunAtLoad=true fires the job once the user session loads.
+    - Wake from sleep:    launchd resumes StartInterval timers within ~30s of wake,
+                          so closing the lid and reopening just continues the cycle.
+    - Periodic refresh:   StartInterval=30 keeps the dashboard fresh every 30s.
+    - Crash recovery:     KeepAlive restarts the job on crash but NOT on a clean
+                          exit (a successful run exits 0 every cycle).
+    - Crash-loop guard:   ThrottleInterval=10 caps restart frequency to once per
+                          10s if the job keeps failing.
+    - System friendliness: ProcessType=Background + LowPriorityIO keep us out of
+                          the way of foreground work.
+    - Path resilience:    WorkingDirectory + HOME pin the job to $HOME (a stable
+                          mount) instead of relying on /Volumes/* timing at boot.
+-->
 <plist version="1.0">
 <dict>
     <key>Label</key>
@@ -13,6 +30,21 @@
     <integer>30</integer>
     <key>RunAtLoad</key>
     <true/>
+    <key>KeepAlive</key>
+    <dict>
+        <key>Crashed</key>
+        <true/>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+    <key>ProcessType</key>
+    <string>Background</string>
+    <key>LowPriorityIO</key>
+    <true/>
+    <key>WorkingDirectory</key>
+    <string>__HOME__</string>
     <key>StandardOutPath</key>
     <string>__HOME__/.pulse/logs/launchd.out</string>
     <key>StandardErrorPath</key>
@@ -21,6 +53,8 @@
     <dict>
         <key>PATH</key>
         <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+        <key>HOME</key>
+        <string>__HOME__</string>
     </dict>
 </dict>
 </plist>
