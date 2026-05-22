@@ -12,8 +12,18 @@ class PublishError(RuntimeError):
 
 
 def _load_creds() -> dict:
-    with CREDENTIALS_FILE.open("r") as f:
-        return json.load(f)
+    try:
+        with CREDENTIALS_FILE.open("r") as f:
+            data = json.load(f)
+    except FileNotFoundError as e:
+        raise PublishError("credentials file not found; run `pulse setup`") from e
+    except json.JSONDecodeError as e:
+        raise PublishError("credentials file is not valid JSON") from e
+    required = ("token", "owner", "repo", "branch", "path", "author_name", "author_email")
+    missing = [k for k in required if k not in data]
+    if missing:
+        raise PublishError(f"credentials missing required keys: {missing}")
+    return data
 
 
 def _api_url(creds: dict) -> str:

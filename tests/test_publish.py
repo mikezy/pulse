@@ -121,3 +121,11 @@ def test_publish_handles_404_first_time_create(monkeypatch, tmp_path):
 
     publish.publish("<html>hi</html>")
     assert "sha" not in captured["body"]
+
+
+def test_publish_missing_creds_raises_publish_error(monkeypatch, tmp_path):
+    """Missing credentials must surface as PublishError so cmd_update returns rc=2."""
+    fake_path = tmp_path / "missing.json"
+    monkeypatch.setattr(publish, "CREDENTIALS_FILE", fake_path)
+    with pytest.raises(publish.PublishError, match="credentials"):
+        publish.publish("<html></html>")
