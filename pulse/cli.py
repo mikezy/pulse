@@ -157,10 +157,22 @@ def _write_credentials_interactive() -> Path:
 
 
 def _install_launch_agent() -> Path:
-    pulse_bin = shutil.which("pulse") or sys.executable + " -m pulse.cli"
+    # launchd treats ProgramArguments[0] as a single binary path. If `pulse` is
+    # not on PATH we fall back to `python -m pulse.cli`, which must be split
+    # into separate <string> elements; otherwise launchd tries to exec a path
+    # with spaces and fails.
+    pulse_bin = shutil.which("pulse")
+    if pulse_bin:
+        invocation = f"<string>{pulse_bin}</string>"
+    else:
+        invocation = (
+            f"<string>{sys.executable}</string>\n"
+            f"        <string>-m</string>\n"
+            f"        <string>pulse.cli</string>"
+        )
     template = _PLIST_TEMPLATE.read_text()
     rendered = (template
-                .replace("__PULSE_BIN__", pulse_bin)
+                .replace("__PULSE_INVOCATION__", invocation)
                 .replace("__HOME__", str(Path.home())))
     _LAUNCH_AGENT_PLIST.parent.mkdir(parents=True, exist_ok=True)
     _LAUNCH_AGENT_PLIST.write_text(rendered)

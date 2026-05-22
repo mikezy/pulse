@@ -6,7 +6,7 @@
     <string>dev.pulse.update</string>
     <key>ProgramArguments</key>
     <array>
-        <string>__PULSE_BIN__</string>
+        __PULSE_INVOCATION__
         <string>update</string>
     </array>
     <key>StartInterval</key>
