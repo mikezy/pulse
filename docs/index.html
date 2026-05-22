@@ -3,7 +3,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- ts is the epoch second at render time; +30 makes the next URL distinct so GitHub Pages CDN can't serve a cached copy on refresh -->
-  <meta http-equiv="refresh" content="30; url=https://mikezy.github.io/pulse/?t=1779489725">
+  <meta http-equiv="refresh" content="30; url=https://mikezy.github.io/pulse/?t=1779489759">
   <title>Pulse</title>
   <style>
     /* Tuned for Kindle Colorsoft (~1264x1680 physical / 632x840 CSS px, 7" portrait).
@@ -48,7 +48,8 @@
     }
 
     /* HEATMAP — 7 rows (days, Mon top → Sun bottom) × 5 cols (weeks, oldest → current).
-       AWS purple ramp — light lavender → soft violet → AWS Bedrock purple. */
+       Yellow/amber ramp. Each step holds saturation so it survives Kaleido's
+       gray-bias compression. L1 is full butter yellow, not a pale wash. */
     .heatwrap { display: flex; gap: 8px; align-items: stretch; padding: 2px 12px 0; }
     .daylabels {
       display: flex; flex-direction: column; justify-content: space-around;
@@ -58,9 +59,9 @@
     .heatgrid { flex: 1; border-collapse: separate; border-spacing: 5px; }
     .heatgrid td { width: 14.28%; height: 24px; border-radius: 3px; }
     .h0 { background: #EBEDF0; }            /* empty — pale gray */
-    .h1 { background: #EADCFF; }            /* light lavender */
-    .h2 { background: #C7A8FF; }            /* soft violet */
-    .h3 { background: #8C4FFF; }            /* AWS Bedrock purple */
+    .h1 { background: #FFE066; }            /* butter yellow — saturated */
+    .h2 { background: #FFB300; }            /* amber */
+    .h3 { background: #E08E00; }            /* deep amber */
 
     .footer {
       font-size: 15px; color: #232F3E; margin-top: 14px;
@@ -81,8 +82,8 @@
 
   <h2>SYSTEM</h2>
   <table class="grid"><tr>
-    <td><div class="num">11.2%</div><div class="lbl">CPU</div></td>
-    <td><div class="num">18.0/51.5</div><div class="lbl">RAM (GB)</div></td>
+    <td><div class="num">20.2%</div><div class="lbl">CPU</div></td>
+    <td><div class="num">18.3/51.5</div><div class="lbl">RAM (GB)</div></td>
     <td><div class="num">13/494</div><div class="lbl">DISK (GB)</div></td>
     <td><div class="num">100%<span style="font-size:14px;"> AC</span></div><div class="lbl">BATTERY</div></td>
   </tr></table>
@@ -91,7 +92,7 @@
   <table class="grid">
     <tr>
       <td><div class="num">683</div><div class="lbl">Sessions</div></td>
-      <td><div class="num">26,396</div><div class="lbl">Messages</div></td>
+      <td><div class="num">26,405</div><div class="lbl">Messages</div></td>
       <td><div class="num">1.88B</div><div class="lbl">Tokens</div></td>
     </tr>
     <tr>
@@ -127,8 +128,8 @@
   </div>
 
   <div class="footer">
-    &ldquo;The cost of not doing the work shows up later.&rdquo;
-    <span class="stamp">Updated 2026-05-22 15:41</span>
+    &ldquo;Small steps, every day.&rdquo;
+    <span class="stamp">Updated 2026-05-22 15:42</span>
   </div>
 
 </body></html>
