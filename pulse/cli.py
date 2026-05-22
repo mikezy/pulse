@@ -148,8 +148,11 @@ def _write_credentials_interactive() -> Path:
         "author_name": _prompt("Commit author name", "Pulse Bot"),
         "author_email": _prompt("Commit author email", "pulse@local"),
     }
-    CREDENTIALS_FILE.write_text(_json.dumps(creds, indent=2))
-    os.chmod(CREDENTIALS_FILE, 0o600)
+    # Create the file with mode 0o600 atomically — write_text() then chmod()
+    # would briefly leave the GitHub PAT world-readable.
+    fd = os.open(CREDENTIALS_FILE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        _json.dump(creds, f, indent=2)
     return CREDENTIALS_FILE
 
 
