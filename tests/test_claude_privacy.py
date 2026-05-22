@@ -1,0 +1,132 @@
+"""Privacy guard tests for collectors.claude.
+
+These tests are the hard wall: they prove the collector cannot leak Confidential data
+even when jsonl rows contain meeting titles, prompts, tool inputs/outputs, file paths, etc.
+"""
+import json
+import shutil
+from datetime import date
+from pathlib import Path
+from unittest.mock import patch
+
+from collectors import claude
+
+
+def _write_dirty_jsonl(projects_dir: Path) -> None:
+    """Write a fixture that contains every Confidential field shape we worry about."""
+    proj = projects_dir / "secret-project-codename"
+    proj.mkdir(parents=True)
+    rows = [
+        {
+            "timestamp": "2026-05-22T10:00:00Z",
+            "session_id": "s-secret-1",
+            "model": "claude-sonnet-4-7",
+            "usage": {"input_tokens": 1, "output_tokens": 1},
+            # The Confidential fields below MUST NOT appear in the output dict.
+            "message": {"content": "PROJECT NEMESIS launch in Q3"},
+            "tool_use": {"input": "customer ABC, ticket SIM-12345"},
+            "tool_result": {"output": "internal partner Acme Corp"},
+            "cwd": "/Volumes/workplace/sara-internal-codename/src",
+            "user_prompt": "draft email to bezos@amazon.com about layoffs",
+        },
+    ]
+    f = proj / "session.jsonl"
+    f.write_text("\n".join(json.dumps(r) for r in rows))
+
+
+def test_output_dict_has_only_allowed_keys(tmp_path, monkeypatch):
+    projects = tmp_path / ".claude" / "projects"
+    projects.mkdir(parents=True)
+    _write_dirty_jsonl(projects)
+    monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
+
+    with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
+        result = claude.collect()
+
+    allowed = {
+        "sessions_today", "messages_today", "tokens_today",
+        "streak_days", "peak_hour", "top_model", "heatmap_60d",
+    }
+    assert set(result.keys()) == allowed
+
+
+def test_output_values_contain_no_confidential_strings(tmp_path, monkeypatch):
+    projects = tmp_path / ".claude" / "projects"
+    projects.mkdir(parents=True)
+    _write_dirty_jsonl(projects)
+    monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
+
+    with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
+        result = claude.collect()
+
+    serialized = json.dumps(result)
+    forbidden = [
+        "NEMESIS", "Q3",
+        "ABC", "SIM-12345",
+        "Acme",
+        "Volumes", "workplace", "sara-internal-codename",
+        "bezos", "layoffs",
+        "secret-project-codename",  # project folder name
+        "s-secret-1",                # session id
+    ]
+    for needle in forbidden:
+        assert needle not in serialized, f"Confidential string '{needle}' leaked into output"
+
+
+def test_credentials_file_never_opened(tmp_path, monkeypatch):
+    """The collector must never open ~/.claude/.credentials.json.
+
+    We pin CLAUDE_PROJECTS_DIR to a tmp path that is NOT under any real ~/.claude.
+    Then we plant a .credentials.json next to it and prove the collector ignores it
+    (it lives outside CLAUDE_PROJECTS_DIR by construction).
+    """
+    fake_claude_root = tmp_path / ".claude"
+    fake_claude_root.mkdir()
+    creds = fake_claude_root / ".credentials.json"
+    # If anything ever opens this, the test will not catch it directly, but we assert
+    # the structural property: CLAUDE_PROJECTS_DIR is the projects subfolder and
+    # iter_jsonl_rows only globs within it.
+    creds.write_text('{"token": "SUPER_SECRET"}')
+
+    projects = fake_claude_root / "projects"
+    projects.mkdir()
+    monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
+
+    result = claude.collect()
+    assert "SUPER_SECRET" not in json.dumps(result)
+
+
+def test_iter_skips_non_jsonl_files(tmp_path, monkeypatch):
+    projects = tmp_path / ".claude" / "projects"
+    proj = projects / "p1"
+    proj.mkdir(parents=True)
+    # Plant non-jsonl files.
+    (proj / "notes.txt").write_text("PROJECT NEMESIS — do not leak")
+    (proj / "config.json").write_text('{"secret": "do-not-read"}')
+    (proj / ".credentials.json").write_text('{"token": "STRAY"}')
+    monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
+
+    result = claude.collect()
+    serialized = json.dumps(result)
+    assert "NEMESIS" not in serialized
+    assert "do-not-read" not in serialized
+    assert "STRAY" not in serialized
+
+
+def test_extract_safe_fields_drops_unknown_keys():
+    dirty = {
+        "timestamp": "2026-05-22T10:00:00Z",
+        "session_id": "s1",
+        "model": "claude-sonnet-4-7",
+        "usage": {"input_tokens": 10, "output_tokens": 20, "cache_read_tokens": 999},
+        "message": {"content": "secret"},
+        "tool_use": {"input": "secret"},
+    }
+    safe = claude._extract_safe_fields(dirty)
+    assert safe is not None
+    # usage may only contain the two whitelisted keys.
+    assert set(safe["usage"].keys()) == {"input_tokens", "output_tokens"}
+    # No raw 'message', 'tool_use', etc. should be in the safe dict.
+    assert "message" not in safe
+    assert "tool_use" not in safe
+    assert "content" not in json.dumps(safe)

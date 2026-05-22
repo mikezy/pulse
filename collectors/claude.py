@@ -57,14 +57,19 @@ def _iter_jsonl_rows(projects_dir: Path):
 
 
 def _extract_safe_fields(row: dict) -> dict | None:
-    """Return only the whitelisted subset of a row. None if required fields missing."""
+    """Return only the whitelisted subset of a row. None if required fields missing.
+
+    The returned dict is JSON-serialisable: 'ts' is stored as an ISO-8601 string,
+    not a datetime object, so callers can safely round-trip through json.dumps()
+    without leaking any unparsed fields.
+    """
     ts = _parse_timestamp(row.get("timestamp", ""))
     if ts is None:
         return None
     usage = row.get("usage") or {}
     safe_usage = {k: usage.get(k, 0) for k in _ALLOWED_USAGE_KEYS}
     return {
-        "ts": ts,
+        "ts": ts.isoformat(),
         "session_id": row.get("session_id"),
         "model": row.get("model"),
         "usage": safe_usage,
@@ -118,7 +123,10 @@ def collect() -> dict:
         safe = _extract_safe_fields(row)
         if safe is None:
             continue
-        d = safe["ts"].date()
+        ts = _parse_timestamp(safe["ts"])
+        if ts is None:
+            continue
+        d = ts.date()
         if d > today:
             continue  # Ignore future-dated rows.
 
@@ -131,7 +139,7 @@ def collect() -> dict:
         if d >= week_ago:
             if safe["model"]:
                 week_models[safe["model"]] += 1
-            week_hours[safe["ts"].hour] += 1
+            week_hours[ts.hour] += 1
 
         if d >= sixty_ago:
             daily_counts[d] += 1
