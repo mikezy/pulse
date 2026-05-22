@@ -3,12 +3,13 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- ts is the epoch second at render time; +30 makes the next URL distinct so GitHub Pages CDN can't serve a cached copy on refresh -->
-  <meta http-equiv="refresh" content="30; url=https://mikezy.github.io/pulse/?t=1779489691">
+  <meta http-equiv="refresh" content="30; url=https://mikezy.github.io/pulse/?t=1779489725">
   <title>Pulse</title>
   <style>
     /* Tuned for Kindle Colorsoft (~1264x1680 physical / 632x840 CSS px, 7" portrait).
-       AWS purple ramp — anchor on Bedrock/AI brand purple (#8C4FFF), then step
-       lighter for the heatmap so Kaleido keeps each step visibly purple. */
+       Yellow/amber ramp — Kaleido pulls low-saturation pastels toward gray, so
+       L1 jumps straight to a saturated butter yellow (NOT a pale wash) to stay
+       visibly different from the empty L0 gray. */
     html, body { margin: 0; padding: 0; }
     body {
       font-family: Georgia, serif;
@@ -23,14 +24,14 @@
       font-size: 44px; margin: 0; letter-spacing: 8px; font-weight: bold;
       color: #232F3E;
     }
-    h1 .dot { color: #8C4FFF; }
-    .sub { font-style: italic; color: #8C4FFF; font-size: 16px; margin-top: 4px; letter-spacing: 1px; }
+    h1 .dot { color: #E08E00; }
+    .sub { font-style: italic; color: #E08E00; font-size: 16px; margin-top: 4px; letter-spacing: 1px; }
 
     /* SECTION HEADERS */
     h2 {
       margin: 16px 0 10px; font-size: 12px; letter-spacing: 4px;
       text-align: center; font-weight: bold; color: #232F3E;
-      border-bottom: 1px solid #8C4FFF; padding-bottom: 5px;
+      border-bottom: 1px solid #E08E00; padding-bottom: 5px;
     }
 
     /* GRIDS */
@@ -80,7 +81,7 @@
 
   <h2>SYSTEM</h2>
   <table class="grid"><tr>
-    <td><div class="num">10.6%</div><div class="lbl">CPU</div></td>
+    <td><div class="num">11.2%</div><div class="lbl">CPU</div></td>
     <td><div class="num">18.0/51.5</div><div class="lbl">RAM (GB)</div></td>
     <td><div class="num">13/494</div><div class="lbl">DISK (GB)</div></td>
     <td><div class="num">100%<span style="font-size:14px;"> AC</span></div><div class="lbl">BATTERY</div></td>
@@ -90,7 +91,7 @@
   <table class="grid">
     <tr>
       <td><div class="num">683</div><div class="lbl">Sessions</div></td>
-      <td><div class="num">26,390</div><div class="lbl">Messages</div></td>
+      <td><div class="num">26,396</div><div class="lbl">Messages</div></td>
       <td><div class="num">1.88B</div><div class="lbl">Tokens</div></td>
     </tr>
     <tr>
@@ -126,7 +127,7 @@
   </div>
 
   <div class="footer">
-    &ldquo;Make the invisible visible.&rdquo;
+    &ldquo;The cost of not doing the work shows up later.&rdquo;
     <span class="stamp">Updated 2026-05-22 15:41</span>
   </div>
 
