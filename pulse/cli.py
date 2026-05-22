@@ -25,13 +25,14 @@ from collectors.outlook import collect as outlook_collect
 
 
 _CLAUDE_FALLBACK = {
-    "sessions_today": 0,
-    "messages_today": 0,
-    "tokens_today": 0,
-    "streak_days": 0,
+    "sessions_4w": 0,
+    "messages_4w": 0,
+    "tokens_4w": 0,
+    "active_days_4w": 0,
+    "window_days": 28,
     "peak_hour": None,
     "top_model": "—",
-    "heatmap_60d": [0] * 60,
+    "heatmap_4w": [[0] * 5 for _ in range(7)],
 }
 
 _SYSTEM_FALLBACK = {

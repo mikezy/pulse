@@ -10,11 +10,11 @@ SAMPLE_CTX = {
     "ram_used_gb": 12.4, "ram_total_gb": 32.0,
     "disk_used_gb": 387, "disk_total_gb": 500,
     "battery_pct": 78, "battery_ac": True,
-    "net_rx_mbps": 1.2, "net_tx_mbps": 0.3,
-    # claude
-    "sessions_today": 7, "messages_today": 142, "tokens_today": 284510,
-    "streak_days": 12, "peak_hour": 14, "top_model": "sonnet-4-7",
-    "heatmap_60d": [0, 1, 2, 3] * 15,
+    # claude (4-week window)
+    "sessions_4w": 683, "messages_4w": 26058, "tokens_4w": 1_853_952_326,
+    "active_days_4w": 16, "window_days": 28,
+    "peak_hour": 14, "top_model": "sonnet-4-7",
+    "heatmap_4w": [[0, 1, 2, 3, 0]] * 7,
     # outlook
     "meetings_today": 5, "todos_today": 8,
 }
@@ -28,11 +28,20 @@ def test_render_returns_html_string():
 
 def test_render_contains_all_labels():
     html = render.render(SAMPLE_CTX)
-    for label in ("CPU", "RAM", "DISK", "BATTERY", "NET",
-                  "Sessions", "Messages", "Tokens", "Streak",
+    for label in ("CPU", "RAM", "DISK", "BATTERY",
+                  "Sessions", "Messages", "Tokens", "Active days",
                   "Peak hour", "Top model",
-                  "Meetings today", "Todos today"):
+                  "Meetings", "Todos open", "Next meeting"):
         assert label in html, f"missing label: {label}"
+
+
+def test_render_does_not_show_network_or_streak():
+    """Ship-it design dropped the Network row and the Streak metric."""
+    html = render.render(SAMPLE_CTX)
+    # Section header NET removed
+    assert "NET MB/s" not in html
+    # Streak label removed
+    assert "Streak" not in html
 
 
 def test_render_contains_values():
@@ -41,10 +50,25 @@ def test_render_contains_values():
     assert "12.4/32.0" in html
     assert "387/500" in html
     assert "78%" in html
-    assert "284,510" in html
-    assert "12d" in html
+    # tokens compacted
+    assert "1.85B" in html
+    # 4-week sessions formatted with thousands separator
+    assert "683" in html
+    assert "26,058" in html
+    # active days
+    assert "16/28" in html
     assert "14:00" in html
     assert "sonnet-4-7" in html
+
+
+def test_compact_tokens_formatting():
+    assert render._compact_tokens(0) == "0"
+    assert render._compact_tokens(842) == "842"
+    assert render._compact_tokens(12_345) == "12.3K"
+    assert render._compact_tokens(148_107_758) == "148.1M"
+    assert render._compact_tokens(1_853_952_326) == "1.85B"
+    # None coerces to 0 (CLI fallback path) — render as "0", not crash.
+    assert render._compact_tokens(None) == "0"
 
 
 def test_render_contains_meta_refresh_with_cachebuster():
@@ -75,8 +99,10 @@ def test_render_has_no_script_tag():
 
 def test_render_includes_fun_fact_and_timestamp():
     html = render.render(SAMPLE_CTX)
-    # Footer signature: "updated YYYY-MM-DD HH:MM"
-    assert re.search(r"updated \d{4}-\d{2}-\d{2} \d{2}:\d{2}", html)
+    # Footer signature: "Updated YYYY-MM-DD HH:MM"
+    assert re.search(r"Updated \d{4}-\d{2}-\d{2} \d{2}:\d{2}", html)
+    # Quote markers around the fun fact.
+    assert "&ldquo;" in html or "“" in html
 
 
 def test_top_model_is_html_escaped():
@@ -86,11 +112,11 @@ def test_top_model_is_html_escaped():
         "cpu_pct": 0.0, "ram_used_gb": 0, "ram_total_gb": 0,
         "disk_used_gb": 0, "disk_total_gb": 0,
         "battery_pct": None, "battery_ac": True,
-        "net_rx_mbps": 0.0, "net_tx_mbps": 0.0,
-        "sessions_today": 0, "messages_today": 0, "tokens_today": 0,
-        "streak_days": 0, "peak_hour": None,
+        "sessions_4w": 0, "messages_4w": 0, "tokens_4w": 0,
+        "active_days_4w": 0, "window_days": 28,
+        "peak_hour": None,
         "top_model": "<script>alert('xss')</script>",
-        "heatmap_60d": [0] * 60,
+        "heatmap_4w": [[0] * 5 for _ in range(7)],
         "meetings_today": None, "todos_today": None,
     }
     html = render.render(ctx)

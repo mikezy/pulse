@@ -1,4 +1,4 @@
-"""Happy-path tests for collectors.claude."""
+"""Happy-path tests for collectors.claude (4-week window)."""
 import shutil
 from datetime import date
 from pathlib import Path
@@ -23,39 +23,32 @@ def test_collect_returns_expected_keys(tmp_path, monkeypatch):
     projects = _setup_fake_projects(tmp_path)
     monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
 
-    # Pin "today" so the fixture's 2026-05-22 rows count as today.
     with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
         result = claude.collect()
 
     expected_keys = {
-        "sessions_today", "messages_today", "tokens_today",
-        "streak_days", "peak_hour", "top_model", "heatmap_60d",
+        "sessions_4w", "messages_4w", "tokens_4w",
+        "active_days_4w", "window_days",
+        "peak_hour", "top_model", "heatmap_4w",
     }
     assert set(result.keys()) == expected_keys
 
 
-def test_collect_today_aggregates(tmp_path, monkeypatch):
+def test_collect_4w_aggregates(tmp_path, monkeypatch):
+    """All 5 fixture rows fall within the 4-week window."""
     projects = _setup_fake_projects(tmp_path)
     monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
 
     with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
         result = claude.collect()
 
-    # 2 sessions today (s1, s2), 3 messages, 100+50+200+80+500+200 = 1130 tokens.
-    assert result["sessions_today"] == 2
-    assert result["messages_today"] == 3
-    assert result["tokens_today"] == 1130
-
-
-def test_collect_streak_3_days(tmp_path, monkeypatch):
-    projects = _setup_fake_projects(tmp_path)
-    monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
-
-    with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
-        result = claude.collect()
-
-    # Fixture has 2026-05-22, 2026-05-21, 2026-05-20 — three consecutive trailing days.
-    assert result["streak_days"] == 3
+    # Fixture has 4 distinct sessions (s1, s2, s3, s4), 5 rows total,
+    # tokens = 100+50 + 200+80 + 500+200 + 150+60 + 150+60 = 1550.
+    assert result["sessions_4w"] == 4
+    assert result["messages_4w"] == 5
+    assert result["tokens_4w"] == 1550
+    assert result["active_days_4w"] == 3   # 2026-05-20, -21, -22
+    assert result["window_days"] == 28
 
 
 def test_collect_top_model_is_majority(tmp_path, monkeypatch):
@@ -65,30 +58,33 @@ def test_collect_top_model_is_majority(tmp_path, monkeypatch):
     with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
         result = claude.collect()
 
-    # 4 sonnet rows vs 1 opus row over the last 7d.
+    # 4 sonnet rows vs 1 opus row.
     assert "sonnet" in result["top_model"].lower()
 
 
-def test_collect_heatmap_length_60(tmp_path, monkeypatch):
+def test_collect_heatmap_shape_7x5(tmp_path, monkeypatch):
     projects = _setup_fake_projects(tmp_path)
     monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", projects)
 
     with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
         result = claude.collect()
 
-    assert isinstance(result["heatmap_60d"], list)
-    assert len(result["heatmap_60d"]) == 60
-    for v in result["heatmap_60d"]:
-        assert v in (0, 1, 2, 3)
+    grid = result["heatmap_4w"]
+    assert isinstance(grid, list)
+    assert len(grid) == 7   # rows = days of week
+    for row in grid:
+        assert len(row) == 5   # cols = weeks
+        for v in row:
+            assert v in (0, 1, 2, 3)
 
 
 def test_collect_when_projects_dir_missing(tmp_path, monkeypatch):
     monkeypatch.setattr(claude, "CLAUDE_PROJECTS_DIR", tmp_path / "does-not-exist")
     result = claude.collect()
-    assert result["sessions_today"] == 0
-    assert result["messages_today"] == 0
-    assert result["tokens_today"] == 0
-    assert result["streak_days"] == 0
+    assert result["sessions_4w"] == 0
+    assert result["messages_4w"] == 0
+    assert result["tokens_4w"] == 0
+    assert result["active_days_4w"] == 0
     assert result["peak_hour"] is None
     assert result["top_model"] == "—"
-    assert result["heatmap_60d"] == [0] * 60
+    assert result["heatmap_4w"] == [[0] * 5 for _ in range(7)]

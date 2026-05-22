@@ -6,61 +6,122 @@
   <meta http-equiv="refresh" content="30; url=https://mikezy.github.io/pulse/?t={{ ts + 30 }}">
   <title>Pulse</title>
   <style>
-    /* Tuned for Kindle Colorsoft (1264x1680, ~7" portrait). No JS, no images. */
+    /* Tuned for Kindle Colorsoft (~1264x1680 physical / 632x840 CSS px, 7" portrait).
+       AWS palette: Squid Ink (#232F3E) + Smile Orange (#FF9900). */
     html, body { margin: 0; padding: 0; }
-    body { font-family: Georgia, serif; background: #fff; color: #000; padding: 16px 18px; }
-    h1   { font-size: 32px; margin: 0; letter-spacing: 4px; }
-    .sub { font-style: italic; color: #555; margin-bottom: 16px; font-size: 14px; }
-    h2   { margin: 20px 0 6px; font-size: 16px; letter-spacing: 2px; }
-    .grid{ width: 100%; border-collapse: collapse; table-layout: fixed; }
-    .grid td { padding: 6px 4px; border-bottom: 1px solid #ccc; font-variant-numeric: tabular-nums; vertical-align: top; word-wrap: break-word; }
-    .num { font-size: 22px; font-weight: bold; line-height: 1.1; }
-    .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #666; margin-top: 2px; }
-    .heat { width: 100%; border-collapse: collapse; margin-top: 12px; table-layout: fixed; }
-    .heat td { height: 18px; padding: 0; border: 1px solid #fff; }
-    .h0 { background: #fff; }
-    .h1 { background: #ddd; }
-    .h2 { background: #888; }
-    .h3 { background: #000; }
-    .footer { font-size: 10px; color: #888; margin-top: 16px; text-align: center; }
+    body {
+      font-family: Georgia, serif;
+      background: #fff;
+      color: #232F3E;
+      padding: 22px 28px;
+    }
+
+    /* HEADER */
+    .head { text-align: center; margin-bottom: 18px; }
+    h1 {
+      font-size: 42px; margin: 0; letter-spacing: 8px; font-weight: bold;
+      color: #232F3E;
+    }
+    h1 .dot { color: #FF9900; }
+    .sub { font-style: italic; color: #FF9900; font-size: 14px; margin-top: 4px; letter-spacing: 1px; }
+
+    /* SECTION HEADERS */
+    h2 {
+      margin: 18px 0 10px; font-size: 11px; letter-spacing: 4px;
+      text-align: center; font-weight: bold; color: #232F3E;
+      border-bottom: 1px solid #FF9900; padding-bottom: 6px;
+    }
+
+    /* GRIDS */
+    .grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .grid td {
+      padding: 10px 4px;
+      font-variant-numeric: tabular-nums; vertical-align: top;
+      word-wrap: break-word; text-align: center;
+    }
+    .num { font-size: 22px; font-weight: bold; line-height: 1.15; color: #232F3E; }
+    .lbl {
+      font-size: 9px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #545B64; margin-top: 5px;
+    }
+
+    /* HEATMAP — 7 rows (days, Mon top → Sun bottom) × 5 cols (weeks, oldest → current).
+       Single-hue ramp: light = quiet, dark = busy. */
+    .heatwrap { display: flex; gap: 8px; align-items: stretch; padding: 4px 12px 0; }
+    .daylabels {
+      display: flex; flex-direction: column; justify-content: space-around;
+      font-size: 10px; color: #545B64; padding: 2px 0;
+      text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
+    }
+    .heatgrid { flex: 1; border-collapse: separate; border-spacing: 5px; }
+    .heatgrid td { width: 14.28%; height: 30px; border-radius: 3px; }
+    .h0 { background: #F2F3F3; }            /* empty */
+    .h1 { background: #FFD699; }            /* light orange */
+    .h2 { background: #FF9900; }            /* smile orange */
+    .h3 { background: #B26B00; }            /* deep amber */
+
+    .footer {
+      font-size: 12px; color: #232F3E; margin-top: 16px;
+      text-align: center; font-style: italic;
+      border-top: 1px solid #F2F3F3; padding-top: 10px;
+    }
+    .footer .stamp {
+      display: block; font-size: 9px; color: #545B64;
+      font-style: normal; letter-spacing: 1px; margin-top: 4px;
+    }
   </style>
 </head><body>
-  <h1>PULSE</h1>
-  <div class="sub">Heartbeat of your work</div>
 
+  <div class="head">
+    <h1>PULSE<span class="dot">.</span></h1>
+    <div class="sub">Heartbeat of your work</div>
+  </div>
+
+  <h2>SYSTEM</h2>
   <table class="grid"><tr>
     <td><div class="num">{{ cpu_pct }}%</div><div class="lbl">CPU</div></td>
     <td><div class="num">{{ ram_used_gb }}/{{ ram_total_gb }}</div><div class="lbl">RAM (GB)</div></td>
     <td><div class="num">{{ disk_used_gb }}/{{ disk_total_gb }}</div><div class="lbl">DISK (GB)</div></td>
-    <td><div class="num">{{ battery_pct if battery_pct is not none else "—" }}{% if battery_pct is not none %}%{% endif %}{% if battery_ac %} AC{% endif %}</div><div class="lbl">BATTERY</div></td>
-    <td><div class="num">{{ net_rx_mbps }}/{{ net_tx_mbps }}</div><div class="lbl">NET MB/s ↓/↑</div></td>
+    <td><div class="num">{{ battery_pct if battery_pct is not none else "—" }}{% if battery_pct is not none %}%{% endif %}{% if battery_ac %}<span style="font-size:14px;"> AC</span>{% endif %}</div><div class="lbl">BATTERY</div></td>
   </tr></table>
 
-  <h2>CLAUDE CODE</h2>
+  <h2>CLAUDE CODE &middot; 4 WEEKS</h2>
   <table class="grid">
     <tr>
-      <td><div class="num">{{ sessions_today }}</div><div class="lbl">Sessions</div></td>
-      <td><div class="num">{{ messages_today }}</div><div class="lbl">Messages</div></td>
-      <td><div class="num">{{ "{:,}".format(tokens_today) }}</div><div class="lbl">Tokens</div></td>
-      <td><div class="num">{{ streak_days }}d</div><div class="lbl">Streak</div></td>
+      <td><div class="num">{{ "{:,}".format(sessions_4w) }}</div><div class="lbl">Sessions</div></td>
+      <td><div class="num">{{ "{:,}".format(messages_4w) }}</div><div class="lbl">Messages</div></td>
+      <td><div class="num">{{ tokens_compact }}</div><div class="lbl">Tokens</div></td>
     </tr>
     <tr>
+      <td><div class="num">{{ active_days_4w }}/{{ window_days }}</div><div class="lbl">Active days</div></td>
       <td><div class="num">{{ peak_hour if peak_hour is not none else "—" }}{% if peak_hour is not none %}:00{% endif %}</div><div class="lbl">Peak hour</div></td>
-      <td colspan="3"><div class="num">{{ top_model }}</div><div class="lbl">Top model (7d)</div></td>
+      <td><div class="num">{{ top_model }}</div><div class="lbl">Top model</div></td>
     </tr>
   </table>
 
-  <table class="heat"><tr>
-  {% for v in heatmap_60d %}<td class="h{{ v }}"></td>{% endfor %}
-  </tr></table>
+  <h2>4-WEEK ACTIVITY</h2>
+  <div class="heatwrap">
+    <div class="daylabels">
+      <span>M</span><span>T</span><span>W</span><span>T</span>
+      <span>F</span><span>S</span><span>S</span>
+    </div>
+    <table class="heatgrid">
+      {% for row in heatmap_4w %}
+      <tr>{% for v in row %}<td class="h{{ v }}"></td>{% endfor %}</tr>
+      {% endfor %}
+    </table>
+  </div>
 
   <h2>TODAY</h2>
   <table class="grid"><tr>
-    <td><div class="num">{{ meetings_today if meetings_today is not none else "—" }}</div><div class="lbl">Meetings today</div></td>
-    <td><div class="num">{{ todos_today if todos_today is not none else "—" }}</div><div class="lbl">Todos today</div></td>
+    <td><div class="num">{{ meetings_today if meetings_today is not none else "—" }}</div><div class="lbl">Meetings</div></td>
+    <td><div class="num">{{ todos_today if todos_today is not none else "—" }}</div><div class="lbl">Todos open</div></td>
+    <td><div class="num">{{ next_meeting if next_meeting is not none else "—" }}</div><div class="lbl">Next meeting</div></td>
   </tr></table>
 
   <div class="footer">
-    {{ fun_fact }} &nbsp;·&nbsp; updated {{ now_str }}
+    &ldquo;{{ fun_fact }}&rdquo;
+    <span class="stamp">Updated {{ now_str }}</span>
   </div>
+
 </body></html>

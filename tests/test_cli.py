@@ -7,18 +7,20 @@ import pytest
 from pulse import cli
 
 
+_FAKE_CTX = {
+    "cpu_pct": 1.0, "ram_used_gb": 1.0, "ram_total_gb": 1.0,
+    "disk_used_gb": 1, "disk_total_gb": 1,
+    "battery_pct": 100, "battery_ac": True,
+    "sessions_4w": 0, "messages_4w": 0, "tokens_4w": 0,
+    "active_days_4w": 0, "window_days": 28,
+    "peak_hour": None, "top_model": "—",
+    "heatmap_4w": [[0] * 5 for _ in range(7)],
+    "meetings_today": 0, "todos_today": 0,
+}
+
+
 def test_render_subcommand_prints_html(capsys):
-    fake_ctx = {
-        "cpu_pct": 1.0, "ram_used_gb": 1.0, "ram_total_gb": 1.0,
-        "disk_used_gb": 1, "disk_total_gb": 1,
-        "battery_pct": 100, "battery_ac": True,
-        "net_rx_mbps": 0.0, "net_tx_mbps": 0.0,
-        "sessions_today": 0, "messages_today": 0, "tokens_today": 0,
-        "streak_days": 0, "peak_hour": None, "top_model": "—",
-        "heatmap_60d": [0] * 60,
-        "meetings_today": 0, "todos_today": 0,
-    }
-    with patch.object(cli, "_collect_all", return_value=fake_ctx):
+    with patch.object(cli, "_collect_all", return_value=dict(_FAKE_CTX)):
         rc = cli.main(["render"])
     out = capsys.readouterr().out
     assert rc == 0
@@ -27,22 +29,12 @@ def test_render_subcommand_prints_html(capsys):
 
 
 def test_update_subcommand_calls_publish(monkeypatch):
-    fake_ctx = {
-        "cpu_pct": 1.0, "ram_used_gb": 1.0, "ram_total_gb": 1.0,
-        "disk_used_gb": 1, "disk_total_gb": 1,
-        "battery_pct": 100, "battery_ac": True,
-        "net_rx_mbps": 0.0, "net_tx_mbps": 0.0,
-        "sessions_today": 0, "messages_today": 0, "tokens_today": 0,
-        "streak_days": 0, "peak_hour": None, "top_model": "—",
-        "heatmap_60d": [0] * 60,
-        "meetings_today": 0, "todos_today": 0,
-    }
     published = []
 
     def fake_publish(html):
         published.append(html)
 
-    monkeypatch.setattr(cli, "_collect_all", lambda: fake_ctx)
+    monkeypatch.setattr(cli, "_collect_all", lambda: dict(_FAKE_CTX))
     monkeypatch.setattr(cli, "publish", fake_publish)
 
     rc = cli.main(["update"])
@@ -54,16 +46,7 @@ def test_update_subcommand_calls_publish(monkeypatch):
 def test_update_returns_nonzero_on_publish_error(monkeypatch):
     from pulse.publish import PublishError
 
-    monkeypatch.setattr(cli, "_collect_all", lambda: {
-        "cpu_pct": 1.0, "ram_used_gb": 1.0, "ram_total_gb": 1.0,
-        "disk_used_gb": 1, "disk_total_gb": 1,
-        "battery_pct": 100, "battery_ac": True,
-        "net_rx_mbps": 0.0, "net_tx_mbps": 0.0,
-        "sessions_today": 0, "messages_today": 0, "tokens_today": 0,
-        "streak_days": 0, "peak_hour": None, "top_model": "—",
-        "heatmap_60d": [0] * 60,
-        "meetings_today": 0, "todos_today": 0,
-    })
+    monkeypatch.setattr(cli, "_collect_all", lambda: dict(_FAKE_CTX))
 
     def boom(html):
         raise PublishError("nope")
@@ -79,7 +62,6 @@ def test_collect_all_resilient_to_one_collector_failing(monkeypatch):
         "cpu_pct": 1.0, "ram_used_gb": 1.0, "ram_total_gb": 1.0,
         "disk_used_gb": 1, "disk_total_gb": 1,
         "battery_pct": 100, "battery_ac": True,
-        "net_rx_mbps": 0.0, "net_tx_mbps": 0.0,
     })
 
     def boom():
@@ -91,7 +73,7 @@ def test_collect_all_resilient_to_one_collector_failing(monkeypatch):
     assert ctx["cpu_pct"] == 1.0
     assert ctx["meetings_today"] == 1
     # Claude fields fall back to safe defaults.
-    assert ctx["sessions_today"] == 0
-    assert ctx["messages_today"] == 0
-    assert ctx["heatmap_60d"] == [0] * 60
+    assert ctx["sessions_4w"] == 0
+    assert ctx["messages_4w"] == 0
+    assert ctx["heatmap_4w"] == [[0] * 5 for _ in range(7)]
     assert ctx["top_model"] == "—"

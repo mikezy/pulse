@@ -1,4 +1,4 @@
-"""Claude Code usage aggregator.
+"""Claude Code usage aggregator (4-week window).
 
 Reads ONLY ~/.claude/projects/**.jsonl. Parses ONLY timestamp/model/usage/session_id.
 Never opens .credentials.json (structurally unreachable: rooted at projects/, not ~/.claude/).
@@ -13,14 +13,20 @@ from pathlib import Path
 from pulse.paths import CLAUDE_PROJECTS_DIR
 
 # Allowlist of usage subkeys we are allowed to read. We include cache tokens because
-# they are billed/counted toward the user's daily token total. We never read any other
-# usage subkey, and we never read any non-usage `message.*` field except `model`.
+# they are billed/counted toward the user's token total. We never read any other usage
+# subkey, and we never read any non-usage `message.*` field except `model`.
 _ALLOWED_USAGE_KEYS = {
     "input_tokens",
     "output_tokens",
     "cache_creation_input_tokens",
     "cache_read_input_tokens",
 }
+
+# 4-week window — 28 days, anchored on the most recent Monday so the heatmap grid is
+# always whole calendar weeks. Today's row is in the rightmost column.
+_WINDOW_DAYS = 28
+_HEATMAP_COLS = 5   # weeks
+_HEATMAP_ROWS = 7   # days of week, Mon top → Sun bottom
 
 
 def _today() -> date:
@@ -31,7 +37,6 @@ def _today() -> date:
 def _parse_timestamp(raw: str) -> datetime | None:
     """Parse an ISO-8601 timestamp. Returns None on failure."""
     try:
-        # Tolerate trailing 'Z'.
         if raw.endswith("Z"):
             raw = raw[:-1] + "+00:00"
         return datetime.fromisoformat(raw)
@@ -40,10 +45,7 @@ def _parse_timestamp(raw: str) -> datetime | None:
 
 
 def _iter_jsonl_rows(projects_dir: Path):
-    """Yield (path, row) for every .jsonl row under projects_dir.
-
-    Skips non-jsonl files. Skips unparseable rows. Never reads anything outside projects_dir.
-    """
+    """Yield (path, row) for every .jsonl row under projects_dir."""
     if not projects_dir.is_dir():
         return
     for path in projects_dir.rglob("*.jsonl"):
@@ -100,44 +102,74 @@ def _abbrev_model(name: str) -> str:
     """Turn 'claude-sonnet-4-7' into 'sonnet-4-7'."""
     if not name:
         return "—"
-    n = name.replace("claude-", "")
-    return n
+    return name.replace("claude-", "")
 
 
-def _bucketize(counts: list[int]) -> list[int]:
-    """Bucket day-counts into 4 shades (0..3) by quartile of nonzero values."""
-    nonzero = sorted([c for c in counts if c > 0])
+def _bucketize_grid(grid: list[list[int]]) -> list[list[int]]:
+    """Bucket 2-D day-counts into 4 shades (0..3) by quartile of nonzero values.
+
+    Bucketing is computed across the whole grid so all 5 weeks share the same scale.
+    Cells with zero stay at 0 (h0); nonzero cells map to 1..3 based on quartiles.
+    """
+    flat = [c for row in grid for c in row]
+    nonzero = sorted([c for c in flat if c > 0])
     if not nonzero:
-        return [0] * len(counts)
+        return [[0] * len(row) for row in grid]
     q1 = nonzero[len(nonzero) // 4]
-    q2 = nonzero[len(nonzero) // 2]
     q3 = nonzero[(3 * len(nonzero)) // 4]
     out = []
-    for c in counts:
-        if c == 0:
-            out.append(0)
-        elif c <= q1:
-            out.append(1)
-        elif c <= q3 if q2 == q1 else c <= q2:
-            out.append(2)
-        else:
-            out.append(3)
+    for row in grid:
+        out_row = []
+        for c in row:
+            if c == 0:
+                out_row.append(0)
+            elif c <= q1:
+                out_row.append(1)
+            elif c <= q3:
+                out_row.append(2)
+            else:
+                out_row.append(3)
+        out.append(out_row)
     return out
 
 
-def collect() -> dict:
-    """Aggregate Claude Code usage. Returns a flat dict."""
-    today = _today()
-    week_ago = today - timedelta(days=7)
-    sixty_ago = today - timedelta(days=60)
+def _build_heatmap(daily_counts: Counter, today: date) -> list[list[int]]:
+    """Build a 7×5 grid (rows = days Mon..Sun, cols = weeks oldest..current).
 
-    sessions_today = set()
-    messages_today = 0
-    tokens_today = 0
-    days_with_messages = set()
-    week_models = Counter()
-    week_hours = Counter()
-    daily_counts = Counter()
+    The rightmost column always contains today. Future days in the current week
+    (after `today`) render as 0.
+    """
+    # Find the Monday of the current week.
+    days_since_monday = today.weekday()  # Mon=0, Sun=6
+    current_monday = today - timedelta(days=days_since_monday)
+    # Oldest column starts (_HEATMAP_COLS - 1) Mondays before the current Monday.
+    oldest_monday = current_monday - timedelta(weeks=_HEATMAP_COLS - 1)
+
+    grid: list[list[int]] = []
+    for row in range(_HEATMAP_ROWS):
+        grid_row: list[int] = []
+        for col in range(_HEATMAP_COLS):
+            d = oldest_monday + timedelta(weeks=col, days=row)
+            if d > today:
+                grid_row.append(0)
+            else:
+                grid_row.append(daily_counts.get(d, 0))
+        grid.append(grid_row)
+    return _bucketize_grid(grid)
+
+
+def collect() -> dict:
+    """Aggregate Claude Code usage over the last 4 weeks. Returns a flat dict."""
+    today = _today()
+    window_start = today - timedelta(days=_WINDOW_DAYS - 1)
+
+    sessions = set()
+    messages = 0
+    tokens = 0
+    active_days = set()
+    hour_counts: Counter = Counter()
+    model_counts: Counter = Counter()
+    daily_counts: Counter = Counter()
 
     for _path, row in _iter_jsonl_rows(CLAUDE_PROJECTS_DIR):
         safe = _extract_safe_fields(row)
@@ -149,51 +181,30 @@ def collect() -> dict:
         d = ts.date()
         if d > today:
             continue  # Ignore future-dated rows.
+        if d < window_start:
+            continue  # Only count rows within the 4-week window.
 
-        if d == today:
-            messages_today += 1
-            tokens_today += sum(safe["usage"].values())
-            if safe["session_id"]:
-                sessions_today.add(safe["session_id"])
+        messages += 1
+        tokens += sum(safe["usage"].values())
+        if safe["session_id"]:
+            sessions.add(safe["session_id"])
+        active_days.add(d)
+        hour_counts[ts.hour] += 1
+        if safe["model"]:
+            model_counts[safe["model"]] += 1
+        daily_counts[d] += 1
 
-        if d >= week_ago:
-            if safe["model"]:
-                week_models[safe["model"]] += 1
-            week_hours[ts.hour] += 1
-
-        if d >= sixty_ago:
-            daily_counts[d] += 1
-
-        days_with_messages.add(d)
-
-    # Streak: consecutive days ending today.
-    streak = 0
-    cursor = today
-    while cursor in days_with_messages:
-        streak += 1
-        cursor = cursor - timedelta(days=1)
-
-    peak_hour = None
-    if week_hours:
-        peak_hour = week_hours.most_common(1)[0][0]
-
-    top_model = "—"
-    if week_models:
-        top_model = _abbrev_model(week_models.most_common(1)[0][0])
-
-    # Heatmap: 60 ints, oldest first.
-    counts_oldest_first = []
-    for i in range(59, -1, -1):
-        d = today - timedelta(days=i)
-        counts_oldest_first.append(daily_counts.get(d, 0))
-    heatmap = _bucketize(counts_oldest_first)
+    peak_hour = hour_counts.most_common(1)[0][0] if hour_counts else None
+    top_model = _abbrev_model(model_counts.most_common(1)[0][0]) if model_counts else "—"
+    heatmap_4w = _build_heatmap(daily_counts, today)
 
     return {
-        "sessions_today": len(sessions_today),
-        "messages_today": messages_today,
-        "tokens_today": tokens_today,
-        "streak_days": streak,
+        "sessions_4w": len(sessions),
+        "messages_4w": messages,
+        "tokens_4w": tokens,
+        "active_days_4w": len(active_days),
+        "window_days": _WINDOW_DAYS,
         "peak_hour": peak_hour,
         "top_model": top_model,
-        "heatmap_60d": heatmap,
+        "heatmap_4w": heatmap_4w,
     }
