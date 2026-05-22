@@ -77,3 +77,22 @@ def test_render_includes_fun_fact_and_timestamp():
     html = render.render(SAMPLE_CTX)
     # Footer signature: "updated YYYY-MM-DD HH:MM"
     assert re.search(r"updated \d{4}-\d{2}-\d{2} \d{2}:\d{2}", html)
+
+
+def test_top_model_is_html_escaped():
+    """If a malicious JSONL row sets model to '<script>alert(1)</script>',
+    that payload must be escaped before reaching the public dashboard."""
+    ctx = {
+        "cpu_pct": 0.0, "ram_used_gb": 0, "ram_total_gb": 0,
+        "disk_used_gb": 0, "disk_total_gb": 0,
+        "battery_pct": None, "battery_ac": True,
+        "net_rx_mbps": 0.0, "net_tx_mbps": 0.0,
+        "sessions_today": 0, "messages_today": 0, "tokens_today": 0,
+        "streak_days": 0, "peak_hour": None,
+        "top_model": "<script>alert('xss')</script>",
+        "heatmap_60d": [0] * 60,
+        "meetings_today": None, "todos_today": None,
+    }
+    html = render.render(ctx)
+    assert "<script>alert" not in html, "raw <script> reached the rendered page"
+    assert "&lt;script&gt;alert" in html, "expected HTML-escaped payload"

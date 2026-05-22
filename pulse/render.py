@@ -23,8 +23,14 @@ _FUN_FACTS = [
 def _env() -> Environment:
     return Environment(
         loader=FileSystemLoader(_TEMPLATE_DIR),
-        autoescape=select_autoescape(["html"]),
+        autoescape=select_autoescape(default=True, default_for_string=True),
     )
+
+
+# Cache the Environment at module import time. select_autoescape(["html"]) only
+# matches by file suffix, so dashboard.html.j2 (suffix .j2) was silently rendered
+# without escaping. default=True forces escaping regardless of template name.
+_ENV = _env()
 
 
 def render(ctx: dict) -> str:
@@ -33,5 +39,5 @@ def render(ctx: dict) -> str:
     now_str = datetime.now().strftime("%Y-%m-%d %H:%M")
     fun_fact = _FUN_FACTS[(ts // 30) % len(_FUN_FACTS)]
     full_ctx = {**ctx, "ts": ts, "now_str": now_str, "fun_fact": fun_fact}
-    template = _env().get_template("dashboard.html.j2")
+    template = _ENV.get_template("dashboard.html.j2")
     return template.render(**full_ctx)
