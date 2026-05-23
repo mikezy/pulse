@@ -12,7 +12,7 @@ def test_plist_renders_with_pulse_on_path(monkeypatch, tmp_path):
     cli._install_launch_agent()
     parsed = plistlib.loads((tmp_path / "test.plist").read_bytes())
     assert parsed["ProgramArguments"] == ["/usr/local/bin/pulse", "update"]
-    assert parsed["StartInterval"] == 30
+    assert parsed["StartInterval"] == 300
 
 
 def test_plist_renders_when_pulse_not_on_path(monkeypatch, tmp_path):

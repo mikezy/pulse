@@ -83,8 +83,9 @@ def test_collect_top_model_is_majority(tmp_path, monkeypatch):
     with patch.object(claude, "_today", return_value=date(2026, 5, 22)):
         result = claude.collect()
 
-    # 4 sonnet rows vs 1 opus row.
-    assert "sonnet" in result["top_model"].lower()
+    # 4 sonnet rows vs 1 opus row. Label format matches Claude Code Desktop:
+    # 'claude-sonnet-4-7' -> 'Sonnet 4.7'.
+    assert result["top_model"] == "Sonnet 4.7"
 
 
 def test_collect_heatmap_shape_7x5(tmp_path, monkeypatch):

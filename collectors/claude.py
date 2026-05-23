@@ -137,10 +137,20 @@ def _extract_safe_fields(row: dict) -> dict | None:
 
 
 def _abbrev_model(name: str) -> str:
-    """Turn 'claude-sonnet-4-7' into 'sonnet-4-7'."""
+    """Turn 'claude-opus-4-7' into 'Opus 4.7' to match Claude Code Desktop's label.
+
+    Family name title-cased, version dotted: 'claude-{family}-{major}-{minor}'
+    becomes '{Family} {major}.{minor}'. Unknown shapes fall back to title-cased.
+    """
     if not name:
         return "—"
-    return name.replace("claude-", "")
+    stripped = name.replace("claude-", "")
+    parts = stripped.split("-")
+    if len(parts) == 1:
+        return parts[0].capitalize()
+    family = parts[0].capitalize()
+    version = ".".join(parts[1:])
+    return f"{family} {version}"
 
 
 def _bucketize_grid(grid: list[list[int]]) -> list[list[int]]:
