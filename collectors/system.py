@@ -32,12 +32,16 @@ def collect() -> dict:
     # whole interval; 1.0s reliably catches background daemon activity.
     cpu_pct = psutil.cpu_percent(interval=1.0)
 
-    # Memory.
+    # Memory. macOS "About This Mac" labels RAM as "GB" but actually uses GiB
+    # (1 GiB = 1024^3 bytes — the chip-capacity convention). Match that so a
+    # 48 GiB Mac shows "48.0", not "51.5".
     vm = psutil.virtual_memory()
-    ram_used_gb = round(vm.used / 1e9, 1)
-    ram_total_gb = round(vm.total / 1e9, 1)
+    _GIB = 1024 ** 3
+    ram_used_gb = round(vm.used / _GIB, 1)
+    ram_total_gb = round(vm.total / _GIB, 1)
 
-    # Disk (root volume).
+    # Disk (root volume). macOS Finder/Disk Utility use true decimal GB for
+    # storage (since Snow Leopard), so divide by 1e9 here.
     du = psutil.disk_usage("/")
     disk_used_gb = round(du.used / 1e9)
     disk_total_gb = round(du.total / 1e9)
