@@ -191,7 +191,7 @@ def cmd_setup(_args) -> int:
     creds_file = _write_credentials_interactive()
     print(f"Credentials: {creds_file}")
     plist = _install_launch_agent()
-    print(f"LaunchAgent: {plist} (loaded, every 30s)")
+    print(f"LaunchAgent: {plist} (loaded, every 5min)")
     print("Running one update now to verify...")
     rc = cmd_update(None)
     if rc == 0:

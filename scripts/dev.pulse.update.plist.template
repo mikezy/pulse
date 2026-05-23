@@ -5,9 +5,12 @@
 
   Lifecycle coverage:
     - Reboot / login:     RunAtLoad=true fires the job once the user session loads.
-    - Wake from sleep:    launchd resumes StartInterval timers within ~30s of wake,
-                          so closing the lid and reopening just continues the cycle.
-    - Periodic refresh:   StartInterval=30 keeps the dashboard fresh every 30s.
+    - Wake from sleep:    launchd resumes StartInterval timers on wake, so closing
+                          the lid and reopening just continues the cycle.
+    - Periodic refresh:   StartInterval=300 keeps the dashboard fresh every 5 min.
+                          Kindle e-ink only refreshes every few minutes anyway, and
+                          slower pushes mean ~10x fewer GitHub Pages builds (and ~10x
+                          fewer transient-failure email alerts).
     - Crash recovery:     KeepAlive restarts the job on crash but NOT on a clean
                           exit (a successful run exits 0 every cycle).
     - Crash-loop guard:   ThrottleInterval=10 caps restart frequency to once per
@@ -27,7 +30,7 @@
         <string>update</string>
     </array>
     <key>StartInterval</key>
-    <integer>30</integer>
+    <integer>300</integer>
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
