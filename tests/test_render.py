@@ -13,7 +13,7 @@ SAMPLE_CTX = {
     # claude (4-week window)
     "sessions_4w": 683, "messages_4w": 26058, "tokens_4w": 1_853_952_326,
     "active_days_4w": 16, "window_days": 28,
-    "peak_hour": 14, "top_model": "sonnet-4-7",
+    "current_streak": 3, "longest_streak": 9,
     "heatmap_4w": [[0, 1, 2, 3, 0]] * 7,
     # outlook
     "meetings_today": 5, "todos_today": 8,
@@ -30,16 +30,15 @@ def test_render_contains_all_labels():
     html = render.render(SAMPLE_CTX)
     for label in ("CPU", "RAM", "DISK", "BATTERY",
                   "Sessions", "Messages", "Tokens", "Active days",
-                  "Peak hour", "Top model"):
+                  "Current streak", "Longest streak"):
         assert label in html, f"missing label: {label}"
 
 
-def test_render_drops_network_streak_and_today():
-    """Compact design fits one Kindle screen: no Network row, no Streak,
-    no TODAY section. Quote in the footer is the only thing below the heatmap."""
+def test_render_drops_network_and_today():
+    """Compact design fits one Kindle screen: no Network row, no TODAY
+    section. Quote in the footer is the only thing below the heatmap."""
     html = render.render(SAMPLE_CTX)
     assert "NET MB/s" not in html
-    assert "Streak" not in html
     # TODAY section header and its labels were dropped to fit the page.
     assert ">TODAY<" not in html
     assert "Meetings" not in html
@@ -60,8 +59,9 @@ def test_render_contains_values():
     assert "26,058" in html
     # active days
     assert "16/28" in html
-    assert "14:00" in html
-    assert "sonnet-4-7" in html
+    # streaks rendered with 'd' suffix
+    assert "3d" in html
+    assert "9d" in html
 
 
 def test_compact_tokens_formatting():
@@ -108,20 +108,26 @@ def test_render_includes_fun_fact_and_timestamp():
     assert "&ldquo;" in html or "“" in html
 
 
-def test_top_model_is_html_escaped():
-    """If a malicious JSONL row sets model to '<script>alert(1)</script>',
-    that payload must be escaped before reaching the public dashboard."""
+def test_render_autoescapes_strings(monkeypatch):
+    """All string ctx values must be HTML-escaped before reaching the page.
+
+    With top_model dropped, no string-typed user-controlled field reaches the
+    template, but autoescape is still load-bearing for any future string field.
+    Plant a malicious payload in the fun-fact source (the only string emitted)
+    to prove the policy holds end-to-end.
+    """
+    monkeypatch.setattr(render, "_FUN_FACTS", ["<script>alert('xss')</script>"])
     ctx = {
         "cpu_pct": 0.0, "ram_used_gb": 0, "ram_total_gb": 0,
         "disk_used_gb": 0, "disk_total_gb": 0,
         "battery_pct": None, "battery_ac": True,
         "sessions_4w": 0, "messages_4w": 0, "tokens_4w": 0,
         "active_days_4w": 0, "window_days": 28,
-        "peak_hour": None,
-        "top_model": "<script>alert('xss')</script>",
+        "current_streak": 0, "longest_streak": 0,
         "heatmap_4w": [[0] * 5 for _ in range(7)],
         "meetings_today": None, "todos_today": None,
     }
     html = render.render(ctx)
-    assert "<script>alert" not in html, "raw <script> reached the rendered page"
+    # Sanity: no unescaped <script> from any source.
+    assert "<script" not in html.lower()
     assert "&lt;script&gt;alert" in html, "expected HTML-escaped payload"

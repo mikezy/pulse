@@ -30,8 +30,8 @@ _CLAUDE_FALLBACK = {
     "tokens_4w": 0,
     "active_days_4w": 0,
     "window_days": 28,
-    "peak_hour": None,
-    "top_model": "—",
+    "current_streak": 0,
+    "longest_streak": 0,
     "heatmap_4w": [[0] * 5 for _ in range(7)],
 }
 

@@ -69,7 +69,7 @@ def test_output_dict_has_only_allowed_keys(tmp_path, monkeypatch):
     allowed = {
         "sessions_4w", "messages_4w", "tokens_4w",
         "active_days_4w", "window_days",
-        "peak_hour", "top_model", "heatmap_4w",
+        "current_streak", "longest_streak", "heatmap_4w",
     }
     assert set(result.keys()) == allowed
 
@@ -169,11 +169,10 @@ def test_extract_safe_fields_drops_unknown_keys():
     assert "standard" not in json.dumps(safe)
 
 
-def test_user_prompt_filter_never_reads_block_text(tmp_path, monkeypatch):
-    """The peak-hour filter inspects only the schema 'type' tag of content blocks.
-
-    It must NOT leak the actual block text — even when the block is a 'text'
-    block whose content is itself confidential.
+def test_collector_never_reads_message_content_or_role(tmp_path, monkeypatch):
+    """Strengthened privacy contract: with peak-hour dropped, the collector no
+    longer reads `type`, `message.role`, or content-block 'type' tags. Even
+    rows whose content blocks contain Confidential text must never leak.
     """
     projects = tmp_path / ".claude" / "projects"
     proj = projects / "leak-bait"
@@ -187,6 +186,7 @@ def test_user_prompt_filter_never_reads_block_text(tmp_path, monkeypatch):
             "message": {
                 "role": "user",
                 "content": "PROJECT NEMESIS go-to-market plan draft",
+                "usage": {"input_tokens": 1, "output_tokens": 1},
             },
         },
         # Rich-text prompt — first block is a 'text' block whose text is Confidential.
@@ -199,10 +199,10 @@ def test_user_prompt_filter_never_reads_block_text(tmp_path, monkeypatch):
                 "content": [
                     {"type": "text", "text": "ACME ACQUISITION termsheet leak bait"},
                 ],
+                "usage": {"input_tokens": 1, "output_tokens": 1},
             },
         },
-        # Tool-result row — first block 'type' tag is 'tool_result', so it's excluded.
-        # The block's content text is also Confidential.
+        # Tool-result row — block content text is also Confidential.
         {
             "timestamp": "2026-05-22T12:00:00Z",
             "type": "user",
@@ -212,6 +212,7 @@ def test_user_prompt_filter_never_reads_block_text(tmp_path, monkeypatch):
                 "content": [
                     {"type": "tool_result", "content": "BEZOS LAYOFFS leak bait"},
                 ],
+                "usage": {"input_tokens": 1, "output_tokens": 1},
             },
         },
     ]
@@ -231,10 +232,6 @@ def test_user_prompt_filter_never_reads_block_text(tmp_path, monkeypatch):
         "leak-bait",                          # project folder
     ):
         assert needle not in serialized, f"Confidential string '{needle}' leaked into output"
-
-    # Sanity: the filter still correctly identified 2 prompts (rows 1+2) and
-    # excluded the tool-result row (row 3) — peak hour is set, not None.
-    assert result["peak_hour"] is not None
 
 
 def test_extract_safe_fields_reads_nested_message_envelope():

@@ -97,8 +97,8 @@
     </tr>
     <tr>
       <td><div class="num">{{ active_days_4w }}/{{ window_days }}</div><div class="lbl">Active days</div></td>
-      <td><div class="num">{{ peak_hour if peak_hour is not none else "—" }}{% if peak_hour is not none %}:00{% endif %}</div><div class="lbl">Peak hour</div></td>
-      <td><div class="num">{{ top_model }}</div><div class="lbl">Top model</div></td>
+      <td><div class="num">{{ current_streak }}d</div><div class="lbl">Current streak</div></td>
+      <td><div class="num">{{ longest_streak }}d</div><div class="lbl">Longest streak</div></td>
     </tr>
   </table>
 

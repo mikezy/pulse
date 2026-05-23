@@ -13,7 +13,7 @@ _FAKE_CTX = {
     "battery_pct": 100, "battery_ac": True,
     "sessions_4w": 0, "messages_4w": 0, "tokens_4w": 0,
     "active_days_4w": 0, "window_days": 28,
-    "peak_hour": None, "top_model": "—",
+    "current_streak": 0, "longest_streak": 0,
     "heatmap_4w": [[0] * 5 for _ in range(7)],
     "meetings_today": 0, "todos_today": 0,
 }
@@ -76,4 +76,5 @@ def test_collect_all_resilient_to_one_collector_failing(monkeypatch):
     assert ctx["sessions_4w"] == 0
     assert ctx["messages_4w"] == 0
     assert ctx["heatmap_4w"] == [[0] * 5 for _ in range(7)]
-    assert ctx["top_model"] == "—"
+    assert ctx["current_streak"] == 0
+    assert ctx["longest_streak"] == 0

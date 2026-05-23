@@ -1,11 +1,10 @@
 """Claude Code usage aggregator (4-week window).
 
-Reads ONLY ~/.claude/projects/**.jsonl. Parses ONLY timestamp/model/usage/session_id,
-plus the structural `type` tag of `message.content` blocks (never the block text itself).
+Reads ONLY ~/.claude/projects/**.jsonl. Parses ONLY timestamp/model/usage/session_id.
 Never opens .credentials.json (structurally unreachable: rooted at projects/, not ~/.claude/).
 Never reads message.content text/values, tool_use.input, tool_use.output, or any field
 whose name contains 'content', 'input', 'output' (other than usage.input_tokens /
-output_tokens, and the `type` schema tag of content blocks — see _is_user_prompt).
+output_tokens). Never reads message.role, message.id, message.stop_reason, etc.
 """
 import json
 from collections import Counter
@@ -67,39 +66,6 @@ def _iter_jsonl_rows(projects_dir: Path):
             continue
 
 
-def _is_user_prompt(row: dict) -> bool:
-    """True if this row represents a prompt the human typed (not a tool result).
-
-    Reads ONLY structural schema tags — `type`, `message.role`, and the `type` tag
-    of the FIRST content block. Never reads block text, tool inputs, tool outputs,
-    or any other content. The schema tags we look at are part of the JSONL framing,
-    not the user's data.
-
-    Three shapes count as user-typed:
-      - {type: "user", message: {role: "user", content: <str>}}              # plain text prompt
-      - {type: "user", message: {role: "user", content: [{type: "text", ...}]}}  # rich text
-      - {type: "user", message: {role: "user", content: [{type: "image", ...}]}} # pasted image
-
-    Tool feedback is excluded:
-      - content[0].type == "tool_result"   (the model fed itself a tool output)
-    """
-    if row.get("type") != "user":
-        return False
-    msg = row.get("message")
-    if not isinstance(msg, dict) or msg.get("role") != "user":
-        return False
-    content = msg.get("content")
-    # str content = typed prompt. We don't inspect the string itself.
-    if isinstance(content, str):
-        return True
-    if isinstance(content, list) and content:
-        first = content[0]
-        if isinstance(first, dict):
-            # Read ONLY the schema tag, never the block text/data.
-            return first.get("type") in ("text", "image")
-    return False
-
-
 def _extract_safe_fields(row: dict) -> dict | None:
     """Return only the allowlisted subset of a row. None if required fields missing.
 
@@ -130,27 +96,7 @@ def _extract_safe_fields(row: dict) -> dict | None:
         "session_id": session_id,
         "model": model,
         "usage": safe_usage,
-        # Boolean tag — does NOT carry any prompt content. Only the schema-level
-        # answer to "did a human type this row?" is preserved.
-        "is_user_prompt": _is_user_prompt(row),
     }
-
-
-def _abbrev_model(name: str) -> str:
-    """Turn 'claude-opus-4-7' into 'Opus 4.7' to match Claude Code Desktop's label.
-
-    Family name title-cased, version dotted: 'claude-{family}-{major}-{minor}'
-    becomes '{Family} {major}.{minor}'. Unknown shapes fall back to title-cased.
-    """
-    if not name:
-        return "—"
-    stripped = name.replace("claude-", "")
-    parts = stripped.split("-")
-    if len(parts) == 1:
-        return parts[0].capitalize()
-    family = parts[0].capitalize()
-    version = ".".join(parts[1:])
-    return f"{family} {version}"
 
 
 def _bucketize_grid(grid: list[list[int]]) -> list[list[int]]:
@@ -179,6 +125,51 @@ def _bucketize_grid(grid: list[list[int]]) -> list[list[int]]:
                 out_row.append(3)
         out.append(out_row)
     return out
+
+
+def _compute_streaks(active_days: set[date], today: date) -> tuple[int, int]:
+    """Return (current_streak, longest_streak) over the active-days set.
+
+    Definitions match Claude Code Desktop:
+      - current_streak: count of consecutive active days ending at the most
+        recent active day. Forgiving — if today is inactive but yesterday
+        was active, the run ending at yesterday still counts (gives the
+        user the rest of today to keep going). If neither today nor
+        yesterday is active, returns 0.
+      - longest_streak: longest unbroken run of active days in the set.
+        Doesn't have to include today.
+    """
+    if not active_days:
+        return 0, 0
+
+    # Longest streak: walk all dates in sorted order, track the longest run
+    # of consecutive 1-day deltas.
+    sorted_days = sorted(active_days)
+    longest = 1
+    run = 1
+    for prev, curr in zip(sorted_days, sorted_days[1:]):
+        if (curr - prev).days == 1:
+            run += 1
+            longest = max(longest, run)
+        else:
+            run = 1
+
+    # Current streak: anchor at today (if active) or yesterday (forgiving).
+    # If neither, the streak is broken — return 0.
+    if today in active_days:
+        anchor = today
+    elif (today - timedelta(days=1)) in active_days:
+        anchor = today - timedelta(days=1)
+    else:
+        return 0, longest
+
+    current = 0
+    d = anchor
+    while d in active_days:
+        current += 1
+        d -= timedelta(days=1)
+
+    return current, longest
 
 
 def _build_heatmap(daily_counts: Counter, today: date) -> list[list[int]]:
@@ -215,11 +206,6 @@ def collect() -> dict:
     messages = 0
     tokens = 0
     active_days = set()
-    # Peak hour is computed over USER-TYPED prompts only (not tool results /
-    # autonomous agent turns). This answers "when am I working?" instead of
-    # "when does my CPU work hardest?". See _is_user_prompt().
-    prompt_hour_counts: Counter = Counter()
-    model_counts: Counter = Counter()
     daily_counts: Counter = Counter()
 
     for _path, row in _iter_jsonl_rows(CLAUDE_PROJECTS_DIR):
@@ -230,8 +216,8 @@ def collect() -> dict:
         if ts is None:
             continue
         # JSONL timestamps are UTC ('Z'). Convert to system-local time so the
-        # heatmap's day buckets and "peak hour" reflect the user's wall clock,
-        # not UTC (otherwise peak hour skews toward 0:00 for US-Pacific users).
+        # heatmap's day buckets reflect the user's wall clock, not UTC
+        # (otherwise day boundaries skew across midnight for US-Pacific users).
         local_ts = ts.astimezone() if ts.tzinfo else ts
         d = local_ts.date()
         if d > today:
@@ -244,16 +230,9 @@ def collect() -> dict:
         if safe["session_id"]:
             sessions.add(safe["session_id"])
         active_days.add(d)
-        if safe["is_user_prompt"]:
-            prompt_hour_counts[local_ts.hour] += 1
-        if safe["model"]:
-            model_counts[safe["model"]] += 1
         daily_counts[d] += 1
 
-    # Peak hour falls back to None if we never saw a typed prompt in 4 weeks
-    # (e.g., a fresh install or a fixture without prompt-shaped rows).
-    peak_hour = prompt_hour_counts.most_common(1)[0][0] if prompt_hour_counts else None
-    top_model = _abbrev_model(model_counts.most_common(1)[0][0]) if model_counts else "—"
+    current_streak, longest_streak = _compute_streaks(active_days, today)
     heatmap_4w = _build_heatmap(daily_counts, today)
 
     return {
@@ -262,7 +241,7 @@ def collect() -> dict:
         "tokens_4w": tokens,
         "active_days_4w": len(active_days),
         "window_days": _WINDOW_DAYS,
-        "peak_hour": peak_hour,
-        "top_model": top_model,
+        "current_streak": current_streak,
+        "longest_streak": longest_streak,
         "heatmap_4w": heatmap_4w,
     }
