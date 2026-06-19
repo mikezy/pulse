@@ -58,7 +58,7 @@ def render(ctx: dict) -> str:
         "ts": ts,
         "now_str": now_str,
         "fun_fact": fun_fact,
-        "tokens_compact": _compact_tokens(ctx.get("tokens_4w", 0)),
+        "tokens_compact": _compact_tokens(ctx.get("tokens_all", 0)),
         # Outlook v1 doesn't expose next-meeting time — render an em-dash.
         "next_meeting": ctx.get("next_meeting"),
     }

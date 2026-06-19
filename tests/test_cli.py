@@ -11,8 +11,8 @@ _FAKE_CTX = {
     "cpu_pct": 1.0, "ram_used_gb": 1.0, "ram_total_gb": 1.0,
     "disk_used_gb": 1, "disk_total_gb": 1,
     "battery_pct": 100, "battery_ac": True,
-    "sessions_4w": 0, "messages_4w": 0, "tokens_4w": 0,
-    "active_days_4w": 0, "window_days": 28,
+    "sessions_all": 0, "messages_all": 0, "tokens_all": 0,
+    "active_days_all": 0,
     "current_streak": 0, "longest_streak": 0,
     "heatmap_4w": [[0] * 5 for _ in range(7)],
     "meetings_today": 0, "todos_today": 0,
@@ -73,8 +73,8 @@ def test_collect_all_resilient_to_one_collector_failing(monkeypatch):
     assert ctx["cpu_pct"] == 1.0
     assert ctx["meetings_today"] == 1
     # Claude fields fall back to safe defaults.
-    assert ctx["sessions_4w"] == 0
-    assert ctx["messages_4w"] == 0
+    assert ctx["sessions_all"] == 0
+    assert ctx["messages_all"] == 0
     assert ctx["heatmap_4w"] == [[0] * 5 for _ in range(7)]
     assert ctx["current_streak"] == 0
     assert ctx["longest_streak"] == 0

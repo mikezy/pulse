@@ -72,6 +72,29 @@
       display: block; font-size: 11px; color: #545B64;
       font-style: normal; letter-spacing: 1px; margin-top: 5px;
     }
+
+    /* PHONE FALLBACK — Kindle Colorsoft renders at 632 CSS px, so this only
+       fires on narrower viewports (modern phones are ~360-430px). Goal: keep
+       compound numbers like "17.4/48.0" on a single line and shrink type so
+       four SYSTEM cells fit across without wrapping mid-token. */
+    @media (max-width: 600px) {
+      body { padding: 12px 14px 10px; }
+      h1 { font-size: 30px; letter-spacing: 4px; }
+      .sub { font-size: 13px; }
+      h2 { font-size: 11px; letter-spacing: 3px; margin: 14px 0 8px; }
+      .grid td { padding: 7px 2px; }
+      .num { font-size: 17px; white-space: nowrap; }
+      .lbl { font-size: 9px; letter-spacing: 1px; margin-top: 3px; }
+      .heatwrap { padding: 2px 4px 0; gap: 5px; }
+      .daylabels { font-size: 9px; }
+      .heatgrid { border-spacing: 3px; }
+      .heatgrid td { height: 18px; }
+      .footer { font-size: 13px; padding-top: 8px; margin-top: 10px; }
+    }
+    @media (max-width: 360px) {
+      h1 { font-size: 24px; letter-spacing: 2px; }
+      .num { font-size: 15px; }
+    }
   </style>
 </head><body>
 
@@ -88,21 +111,21 @@
     <td><div class="num">{{ battery_pct if battery_pct is not none else "—" }}{% if battery_pct is not none %}%{% endif %}{% if battery_ac %}<span style="font-size:14px;"> AC</span>{% endif %}</div><div class="lbl">BATTERY</div></td>
   </tr></table>
 
-  <h2>CLAUDE CODE &middot; 4 WEEKS</h2>
+  <h2>CLAUDE CODE &middot; ALL TIME</h2>
   <table class="grid">
     <tr>
-      <td><div class="num">{{ "{:,}".format(sessions_4w) }}</div><div class="lbl">Sessions</div></td>
-      <td><div class="num">{{ "{:,}".format(messages_4w) }}</div><div class="lbl">Messages</div></td>
+      <td><div class="num">{{ "{:,}".format(sessions_all) }}</div><div class="lbl">Sessions</div></td>
+      <td><div class="num">{{ "{:,}".format(messages_all) }}</div><div class="lbl">Messages</div></td>
       <td><div class="num">{{ tokens_compact }}</div><div class="lbl">Tokens</div></td>
     </tr>
     <tr>
-      <td><div class="num">{{ active_days_4w }}/{{ window_days }}</div><div class="lbl">Active days</div></td>
+      <td><div class="num">{{ active_days_all }}</div><div class="lbl">Active days</div></td>
       <td><div class="num">{{ current_streak }}d</div><div class="lbl">Current streak</div></td>
       <td><div class="num">{{ longest_streak }}d</div><div class="lbl">Longest streak</div></td>
     </tr>
   </table>
 
-  <h2>4-WEEK ACTIVITY</h2>
+  <h2>PAST 4-WEEK ACTIVITY</h2>
   <div class="heatwrap">
     <div class="daylabels">
       <span>M</span><span>T</span><span>W</span><span>T</span>

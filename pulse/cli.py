@@ -17,6 +17,7 @@ from pathlib import Path
 from pulse.paths import LOG_DIR, STATE_FILE, UPDATE_LOG, ensure_dirs
 from pulse.publish import PublishError, publish
 from pulse.render import render
+from pulse.harmony_data import push_data
 
 # Imported as module-level callables so tests can monkeypatch them by name.
 from collectors.system import collect as system_collect
@@ -25,11 +26,10 @@ from collectors.outlook import collect as outlook_collect
 
 
 _CLAUDE_FALLBACK = {
-    "sessions_4w": 0,
-    "messages_4w": 0,
-    "tokens_4w": 0,
-    "active_days_4w": 0,
-    "window_days": 28,
+    "sessions_all": 0,
+    "messages_all": 0,
+    "tokens_all": 0,
+    "active_days_all": 0,
     "current_streak": 0,
     "longest_streak": 0,
     "heatmap_4w": [[0] * 5 for _ in range(7)],
@@ -98,6 +98,12 @@ def cmd_update(_args) -> int:
         ctx = _collect_all()
         html = render(ctx)
         publish(html)
+        # Best-effort Harmony data push. Never fails the GitHub/Kindle publish:
+        # a no-op if S3 creds aren't configured, swallows its own errors otherwise.
+        if push_data(ctx):
+            logger.info("harmony data.json pushed")
+        else:
+            logger.info("harmony data push skipped or failed (non-fatal)")
         _record_last_update(datetime.now().isoformat(timespec="seconds"))
         logger.info("update ok")
         return 0

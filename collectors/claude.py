@@ -198,15 +198,23 @@ def _build_heatmap(daily_counts: Counter, today: date) -> list[list[int]]:
 
 
 def collect() -> dict:
-    """Aggregate Claude Code usage over the last 4 weeks. Returns a flat dict."""
+    """Aggregate Claude Code usage. Returns a flat dict.
+
+    Computes two sets of stats:
+      - All-time totals (sessions, messages, tokens, active days, streaks)
+      - 4-week window (heatmap only)
+    """
     today = _today()
     window_start = today - timedelta(days=_WINDOW_DAYS - 1)
 
-    sessions = set()
-    messages = 0
-    tokens = 0
-    active_days = set()
-    daily_counts: Counter = Counter()
+    # All-time accumulators
+    sessions_all = set()
+    messages_all = 0
+    tokens_all = 0
+    active_days_all = set()
+
+    # 4-week heatmap accumulators
+    daily_counts_4w: Counter = Counter()
 
     for _path, row in _iter_jsonl_rows(CLAUDE_PROJECTS_DIR):
         safe = _extract_safe_fields(row)
@@ -222,25 +230,26 @@ def collect() -> dict:
         d = local_ts.date()
         if d > today:
             continue  # Ignore future-dated rows.
-        if d < window_start:
-            continue  # Only count rows within the 4-week window.
 
-        messages += 1
-        tokens += sum(safe["usage"].values())
+        # All-time stats: count everything up to today
+        messages_all += 1
+        tokens_all += sum(safe["usage"].values())
         if safe["session_id"]:
-            sessions.add(safe["session_id"])
-        active_days.add(d)
-        daily_counts[d] += 1
+            sessions_all.add(safe["session_id"])
+        active_days_all.add(d)
 
-    current_streak, longest_streak = _compute_streaks(active_days, today)
-    heatmap_4w = _build_heatmap(daily_counts, today)
+        # 4-week heatmap: only count rows within the window
+        if d >= window_start:
+            daily_counts_4w[d] += 1
+
+    current_streak, longest_streak = _compute_streaks(active_days_all, today)
+    heatmap_4w = _build_heatmap(daily_counts_4w, today)
 
     return {
-        "sessions_4w": len(sessions),
-        "messages_4w": messages,
-        "tokens_4w": tokens,
-        "active_days_4w": len(active_days),
-        "window_days": _WINDOW_DAYS,
+        "sessions_all": len(sessions_all),
+        "messages_all": messages_all,
+        "tokens_all": tokens_all,
+        "active_days_all": len(active_days_all),
         "current_streak": current_streak,
         "longest_streak": longest_streak,
         "heatmap_4w": heatmap_4w,

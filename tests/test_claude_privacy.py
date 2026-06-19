@@ -67,8 +67,8 @@ def test_output_dict_has_only_allowed_keys(tmp_path, monkeypatch):
         result = claude.collect()
 
     allowed = {
-        "sessions_4w", "messages_4w", "tokens_4w",
-        "active_days_4w", "window_days",
+        "sessions_all", "messages_all", "tokens_all",
+        "active_days_all",
         "current_streak", "longest_streak", "heatmap_4w",
     }
     assert set(result.keys()) == allowed

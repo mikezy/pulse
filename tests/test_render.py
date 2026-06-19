@@ -10,9 +10,9 @@ SAMPLE_CTX = {
     "ram_used_gb": 12.4, "ram_total_gb": 32.0,
     "disk_used_gb": 387, "disk_total_gb": 500,
     "battery_pct": 78, "battery_ac": True,
-    # claude (4-week window)
-    "sessions_4w": 683, "messages_4w": 26058, "tokens_4w": 1_853_952_326,
-    "active_days_4w": 16, "window_days": 28,
+    # claude (all-time totals)
+    "sessions_all": 683, "messages_all": 26058, "tokens_all": 1_853_952_326,
+    "active_days_all": 16,
     "current_streak": 3, "longest_streak": 9,
     "heatmap_4w": [[0, 1, 2, 3, 0]] * 7,
     # outlook
@@ -57,8 +57,8 @@ def test_render_contains_values():
     # 4-week sessions formatted with thousands separator
     assert "683" in html
     assert "26,058" in html
-    # active days
-    assert "16/28" in html
+    # active days (all-time, no denominator)
+    assert ">16<" in html
     # streaks rendered with 'd' suffix
     assert "3d" in html
     assert "9d" in html
@@ -121,8 +121,8 @@ def test_render_autoescapes_strings(monkeypatch):
         "cpu_pct": 0.0, "ram_used_gb": 0, "ram_total_gb": 0,
         "disk_used_gb": 0, "disk_total_gb": 0,
         "battery_pct": None, "battery_ac": True,
-        "sessions_4w": 0, "messages_4w": 0, "tokens_4w": 0,
-        "active_days_4w": 0, "window_days": 28,
+        "sessions_all": 0, "messages_all": 0, "tokens_all": 0,
+        "active_days_all": 0,
         "current_streak": 0, "longest_streak": 0,
         "heatmap_4w": [[0] * 5 for _ in range(7)],
         "meetings_today": None, "todos_today": None,
