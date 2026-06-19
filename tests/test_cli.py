@@ -14,7 +14,7 @@ _FAKE_CTX = {
     "sessions_all": 0, "messages_all": 0, "tokens_all": 0,
     "active_days_all": 0,
     "current_streak": 0, "longest_streak": 0,
-    "heatmap_4w": [[0] * 5 for _ in range(7)],
+    "heatmap_4w": [[0] * 4 for _ in range(7)],
     "meetings_today": 0, "todos_today": 0,
 }
 
@@ -75,6 +75,6 @@ def test_collect_all_resilient_to_one_collector_failing(monkeypatch):
     # Claude fields fall back to safe defaults.
     assert ctx["sessions_all"] == 0
     assert ctx["messages_all"] == 0
-    assert ctx["heatmap_4w"] == [[0] * 5 for _ in range(7)]
+    assert ctx["heatmap_4w"] == [[0] * 4 for _ in range(7)]
     assert ctx["current_streak"] == 0
     assert ctx["longest_streak"] == 0

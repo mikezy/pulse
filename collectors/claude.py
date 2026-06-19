@@ -26,7 +26,7 @@ _ALLOWED_USAGE_KEYS = {
 # 4-week window — 28 days, anchored on the most recent Monday so the heatmap grid is
 # always whole calendar weeks. Today's row is in the rightmost column.
 _WINDOW_DAYS = 28
-_HEATMAP_COLS = 5   # weeks
+_HEATMAP_COLS = 4   # weeks
 _HEATMAP_ROWS = 7   # days of week, Mon top → Sun bottom
 
 

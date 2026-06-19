@@ -32,7 +32,7 @@ _CLAUDE_FALLBACK = {
     "active_days_all": 0,
     "current_streak": 0,
     "longest_streak": 0,
-    "heatmap_4w": [[0] * 5 for _ in range(7)],
+    "heatmap_4w": [[0] * 4 for _ in range(7)],
 }
 
 _SYSTEM_FALLBACK = {

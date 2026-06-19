@@ -54,7 +54,7 @@ def build_payload(ctx: dict) -> dict:
             "active_days_all": ctx.get("active_days_all", 0),
             "current_streak": ctx.get("current_streak", 0),
             "longest_streak": ctx.get("longest_streak", 0),
-            "heatmap_4w": ctx.get("heatmap_4w", [[0] * 5 for _ in range(7)]),
+            "heatmap_4w": ctx.get("heatmap_4w", [[0] * 4 for _ in range(7)]),
         },
     }
 

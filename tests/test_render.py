@@ -14,7 +14,7 @@ SAMPLE_CTX = {
     "sessions_all": 683, "messages_all": 26058, "tokens_all": 1_853_952_326,
     "active_days_all": 16,
     "current_streak": 3, "longest_streak": 9,
-    "heatmap_4w": [[0, 1, 2, 3, 0]] * 7,
+    "heatmap_4w": [[0, 1, 2, 3]] * 7,
     # outlook
     "meetings_today": 5, "todos_today": 8,
 }
@@ -124,7 +124,7 @@ def test_render_autoescapes_strings(monkeypatch):
         "sessions_all": 0, "messages_all": 0, "tokens_all": 0,
         "active_days_all": 0,
         "current_streak": 0, "longest_streak": 0,
-        "heatmap_4w": [[0] * 5 for _ in range(7)],
+        "heatmap_4w": [[0] * 4 for _ in range(7)],
         "meetings_today": None, "todos_today": None,
     }
     html = render.render(ctx)

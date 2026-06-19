@@ -61,7 +61,7 @@ def test_collect_heatmap_shape_7x5(tmp_path, monkeypatch):
     assert isinstance(grid, list)
     assert len(grid) == 7   # rows = days of week
     for row in grid:
-        assert len(row) == 5   # cols = weeks
+        assert len(row) == 4   # cols = weeks
         for v in row:
             assert v in (0, 1, 2, 3)
 
@@ -75,4 +75,4 @@ def test_collect_when_projects_dir_missing(tmp_path, monkeypatch):
     assert result["active_days_all"] == 0
     assert result["current_streak"] == 0
     assert result["longest_streak"] == 0
-    assert result["heatmap_4w"] == [[0] * 5 for _ in range(7)]
+    assert result["heatmap_4w"] == [[0] * 4 for _ in range(7)]
