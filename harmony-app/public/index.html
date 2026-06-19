@@ -1,0 +1,134 @@
+<!doctype html>
+<html><head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Usage Pulse</title>
+  <style>
+    /* Ported verbatim from templates/dashboard.html.j2 so the Harmony desktop view
+       matches the Kindle view. The amber/yellow heatmap ramp is kept as-is. */
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: Georgia, serif;
+      background: #fff;
+      color: #232F3E;
+      padding: 18px 28px 14px;
+    }
+
+    /* HEADER */
+    .head { text-align: center; margin-bottom: 14px; }
+    h1 {
+      font-size: 44px; margin: 0; letter-spacing: 8px; font-weight: bold;
+      color: #232F3E;
+    }
+    h1 .dot { color: #E08E00; }
+    .sub { font-style: italic; color: #E08E00; font-size: 16px; margin-top: 4px; letter-spacing: 1px; }
+
+    /* SECTION HEADERS */
+    h2 {
+      margin: 16px 0 10px; font-size: 12px; letter-spacing: 4px;
+      text-align: center; font-weight: bold; color: #232F3E;
+      border-bottom: 1px solid #E08E00; padding-bottom: 5px;
+    }
+
+    /* GRIDS */
+    .grid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .grid td {
+      padding: 9px 4px;
+      font-variant-numeric: tabular-nums; vertical-align: top;
+      word-wrap: break-word; text-align: center;
+    }
+    .num { font-size: 24px; font-weight: bold; line-height: 1.15; color: #232F3E; }
+    .lbl {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+      color: #545B64; margin-top: 5px;
+    }
+
+    /* HEATMAP — 7 rows (days, Mon top → Sun bottom) × 5 cols (weeks, oldest → current). */
+    .heatwrap { display: flex; gap: 8px; align-items: stretch; padding: 2px 12px 0; }
+    .daylabels {
+      display: flex; flex-direction: column; justify-content: space-around;
+      font-size: 10px; color: #545B64; padding: 1px 0;
+      text-transform: uppercase; letter-spacing: 1px; font-weight: bold;
+    }
+    .heatgrid { flex: 1; border-collapse: separate; border-spacing: 5px; }
+    .heatgrid td { width: 14.28%; height: 24px; border-radius: 3px; }
+    .h0 { background: #EBEDF0; }            /* empty — pale gray */
+    .h1 { background: #FFE066; }            /* butter yellow — saturated */
+    .h2 { background: #FFB300; }            /* amber */
+    .h3 { background: #E08E00; }            /* deep amber */
+
+    .footer {
+      font-size: 15px; color: #232F3E; margin-top: 14px;
+      text-align: center; font-style: italic;
+      border-top: 1px solid #F2F3F3; padding-top: 10px;
+    }
+    .footer .stamp {
+      display: block; font-size: 11px; color: #545B64;
+      font-style: normal; letter-spacing: 1px; margin-top: 5px;
+    }
+
+    /* PHONE FALLBACK */
+    @media (max-width: 600px) {
+      body { padding: 12px 14px 10px; }
+      h1 { font-size: 30px; letter-spacing: 4px; }
+      .sub { font-size: 13px; }
+      h2 { font-size: 11px; letter-spacing: 3px; margin: 14px 0 8px; }
+      .grid td { padding: 7px 2px; }
+      .num { font-size: 17px; white-space: nowrap; }
+      .lbl { font-size: 9px; letter-spacing: 1px; margin-top: 3px; }
+      .heatwrap { padding: 2px 4px 0; gap: 5px; }
+      .daylabels { font-size: 9px; }
+      .heatgrid { border-spacing: 3px; }
+      .heatgrid td { height: 18px; }
+      .footer { font-size: 13px; padding-top: 8px; margin-top: 10px; }
+    }
+    @media (max-width: 360px) {
+      h1 { font-size: 24px; letter-spacing: 2px; }
+      .num { font-size: 15px; }
+    }
+  </style>
+</head><body>
+
+  <div class="head">
+    <h1>PULSE<span class="dot">.</span></h1>
+    <div class="sub">Heartbeat of your work</div>
+  </div>
+
+  <h2>SYSTEM</h2>
+  <table class="grid"><tr>
+    <td><div class="num"><span id="cpu">—</span>%</div><div class="lbl">CPU</div></td>
+    <td><div class="num"><span id="ram">—</span></div><div class="lbl">RAM (GB)</div></td>
+    <td><div class="num"><span id="disk">—</span></div><div class="lbl">DISK (GB)</div></td>
+    <td><div class="num"><span id="batt">—</span></div><div class="lbl">BATTERY</div></td>
+  </tr></table>
+
+  <h2>CLAUDE CODE &middot; ALL TIME</h2>
+  <table class="grid">
+    <tr>
+      <td><div class="num" id="sessions">—</div><div class="lbl">Sessions</div></td>
+      <td><div class="num" id="messages">—</div><div class="lbl">Messages</div></td>
+      <td><div class="num" id="tokens">—</div><div class="lbl">Tokens</div></td>
+    </tr>
+    <tr>
+      <td><div class="num" id="activedays">—</div><div class="lbl">Active days</div></td>
+      <td><div class="num" id="curstreak">—</div><div class="lbl">Current streak</div></td>
+      <td><div class="num" id="longstreak">—</div><div class="lbl">Longest streak</div></td>
+    </tr>
+  </table>
+
+  <h2>PAST 4-WEEK ACTIVITY</h2>
+  <div class="heatwrap">
+    <div class="daylabels">
+      <span>M</span><span>T</span><span>W</span><span>T</span>
+      <span>F</span><span>S</span><span>S</span>
+    </div>
+    <table class="heatgrid" id="heat"></table>
+  </div>
+
+  <div class="footer">
+    &ldquo;<span id="fact"></span>&rdquo;
+    <span class="stamp">Updated <span id="stamp">—</span></span>
+  </div>
+
+  <script src="app.js"></script>
+</body></html>
